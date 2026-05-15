@@ -80,6 +80,28 @@ services:
       retries: 10
       start_period: 20s
 
+  # ─── Kafka Topic Initializer ───────────────────────────────────────────────
+  # Creates all 9 orchid topics after Kafka is healthy. Idempotent — safe to restart.
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: >
+      bash -c "
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic orchid.sandbox.prompt_sent     --partitions 3 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic orchid.sandbox.agent_response  --partitions 3 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic orchid.sandbox.correction_issued --partitions 3 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic orchid.sandbox.code_executed   --partitions 3 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic orchid.sandbox.focus_shift     --partitions 3 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic orchid.sandbox.chaos_injected  --partitions 3 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic orchid.sandbox.scenario_started --partitions 3 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic orchid.sandbox.scenario_ended  --partitions 3 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --topic orchid.dlq                    --partitions 1 --replication-factor 1 &&
+        echo 'All orchid topics created.'
+      "
+    restart: "no"
+
   # ─── Vector & Graph Stores ─────────────────────────────────────────────────
 
   qdrant:

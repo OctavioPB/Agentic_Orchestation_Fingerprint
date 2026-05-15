@@ -1,0 +1,12 @@
+# Core Kafka + schema
+confluent-kafka>=2.3.0      # Producer, Consumer, AdminClient, Schema Registry client
+fastavro>=1.9.0             # Avro encoding/decoding (required by confluent_kafka[avro])
+
+# Domain models and validation
+pydantic>=2.0
+
+# Observability
+structlog>=24.0
+
+# Retry logic
+tenacity>=8.0.0

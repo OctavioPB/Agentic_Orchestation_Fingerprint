@@ -1,0 +1,29 @@
+{
+  "namespace": "io.orchid.telemetry",
+  "type": "record",
+  "name": "FocusShiftEvent",
+  "doc": "Optional: eye-tracking or window-focus metadata indicating candidate attention shift.",
+  "fields": [
+    {"name": "event_id",        "type": "string", "doc": "UUID v4"},
+    {"name": "session_id",      "type": "string"},
+    {"name": "timestamp",       "type": "string", "doc": "ISO 8601 UTC"},
+    {"name": "event_type",      "type": "string", "default": "FOCUS_SHIFT"},
+    {
+      "name": "from_component",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "UI component losing focus: editor | terminal | chat | null (session start)"
+    },
+    {
+      "name": "to_component",
+      "type": "string",
+      "doc": "UI component gaining focus: editor | terminal | chat | browser"
+    },
+    {
+      "name": "dwell_ms",
+      "type": "int",
+      "default": 0,
+      "doc": "Time spent (ms) in from_component before this shift"
+    }
+  ]
+}

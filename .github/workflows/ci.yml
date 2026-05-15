@@ -50,6 +50,9 @@ jobs:
         run: pip install pytest pydantic>=2.0
       - name: Run unit tests
         run: pytest tests/unit/ -v --tb=short
+        # Integration tests (tests/integration/) require Docker + testcontainers
+        # and are NOT run in this job. Run them locally with:
+        #   pytest tests/integration/ -m integration -v
 
   docker-build:
     name: Docker build check (sandbox)

@@ -1,0 +1,26 @@
+{
+  "namespace": "io.orchid.telemetry",
+  "type": "record",
+  "name": "ChaosInjectedEvent",
+  "doc": "Airflow-triggered fault event. Always emitted to Kafka BEFORE the fault lands in the sandbox.",
+  "fields": [
+    {"name": "event_id",        "type": "string", "doc": "UUID v4"},
+    {"name": "session_id",      "type": "string"},
+    {"name": "timestamp",       "type": "string", "doc": "ISO 8601 UTC — emitted before fault"},
+    {"name": "event_type",      "type": "string", "default": "CHAOS_INJECTED"},
+    {
+      "name": "chaos_type",
+      "type": "string",
+      "doc": "KILL_CONSUMER | CORRUPT_SCHEMA | FLOOD_TOPIC"
+    },
+    {"name": "target",          "type": "string", "doc": "Affected component or resource"},
+    {"name": "trigger_at_sec",  "type": "int",    "doc": "Seconds after SCENARIO_STARTED"},
+    {"name": "injected_at",     "type": "string", "doc": "ISO 8601 UTC — actual injection time"},
+    {
+      "name": "params_json",
+      "type": "string",
+      "default": "{}",
+      "doc": "JSON-encoded chaos-type-specific parameters"
+    }
+  ]
+}

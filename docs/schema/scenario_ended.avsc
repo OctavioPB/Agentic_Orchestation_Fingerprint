@@ -1,0 +1,22 @@
+{
+  "namespace": "io.orchid.telemetry",
+  "type": "record",
+  "name": "ScenarioEndedEvent",
+  "doc": "Emitted when a candidate session completes or times out. Always the last event for a session_id.",
+  "fields": [
+    {"name": "event_id",     "type": "string", "doc": "UUID v4"},
+    {"name": "session_id",   "type": "string"},
+    {"name": "timestamp",    "type": "string", "doc": "ISO 8601 UTC"},
+    {"name": "event_type",   "type": "string", "default": "SCENARIO_ENDED"},
+    {
+      "name": "reason",
+      "type": "string",
+      "doc": "completed | timeout"
+    },
+    {
+      "name": "duration_sec",
+      "type": "int",
+      "doc": "Total session duration in seconds"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "namespace": "io.orchid.telemetry",
+  "type": "record",
+  "name": "ScenarioStartedEvent",
+  "doc": "Emitted when a candidate session begins. Always the first event for a session_id.",
+  "fields": [
+    {"name": "event_id",          "type": "string", "doc": "UUID v4"},
+    {"name": "session_id",        "type": "string"},
+    {"name": "timestamp",         "type": "string", "doc": "ISO 8601 UTC"},
+    {"name": "event_type",        "type": "string", "default": "SCENARIO_STARTED"},
+    {"name": "scenario_id",       "type": "string", "doc": "e.g. scenario_corrupted_warehouse_v1"},
+    {"name": "scenario_version",  "type": "string", "doc": "e.g. v1"},
+    {
+      "name": "chaos_config_json",
+      "type": "string",
+      "default": "null",
+      "doc": "JSON-encoded ChaosConfig or 'null' if chaos disabled for this session"
+    }
+  ]
+}

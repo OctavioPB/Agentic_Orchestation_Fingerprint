@@ -1,0 +1,17 @@
+{
+  "namespace": "io.orchid.telemetry",
+  "type": "record",
+  "name": "AgentResponseEvent",
+  "doc": "A sub-agent reply to a candidate instruction.",
+  "fields": [
+    {"name": "event_id",    "type": "string", "doc": "UUID v4"},
+    {"name": "session_id",  "type": "string"},
+    {"name": "timestamp",   "type": "string", "doc": "ISO 8601 UTC"},
+    {"name": "event_type",  "type": "string", "default": "AGENT_RESPONSE"},
+    {"name": "agent",       "type": "string", "doc": "DELTA | NOVA | ECHO"},
+    {"name": "text",        "type": "string", "doc": "Full agent reply text"},
+    {"name": "model",       "type": "string", "doc": "LLM model identifier (e.g. gpt-4o)"},
+    {"name": "latency_ms",  "type": "int",    "doc": "End-to-end latency in milliseconds"},
+    {"name": "token_count", "type": "int",    "doc": "Output token count for cost tracking"}
+  ]
+}

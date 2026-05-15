@@ -1,0 +1,16 @@
+{
+  "namespace": "io.orchid.telemetry",
+  "type": "record",
+  "name": "CodeExecutedEvent",
+  "doc": "A terminal command executed by the candidate in the sandbox.",
+  "fields": [
+    {"name": "event_id",   "type": "string", "doc": "UUID v4"},
+    {"name": "session_id", "type": "string"},
+    {"name": "timestamp",  "type": "string", "doc": "ISO 8601 UTC"},
+    {"name": "event_type", "type": "string", "default": "CODE_EXECUTED"},
+    {"name": "command",    "type": "string", "doc": "Full shell command string"},
+    {"name": "exit_code",  "type": "int",    "doc": "Process exit code (0 = success)"},
+    {"name": "stdout",     "type": "string", "default": ""},
+    {"name": "stderr",     "type": "string", "default": ""}
+  ]
+}
