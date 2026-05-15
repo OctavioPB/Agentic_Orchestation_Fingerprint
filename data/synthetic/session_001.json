@@ -1,0 +1,269 @@
+{
+  "session_id": "sess_01abc123def456gh",
+  "candidate_id": "candidate_alice_chen_001",
+  "scenario_id": "scenario_corrupted_warehouse_v1",
+  "started_at": "2026-05-10T09:00:00Z",
+  "ended_at": "2026-05-10T09:47:23Z",
+  "style_cluster_ground_truth": "architect",
+  "events": [
+    {
+      "event_id": "evt_s01_001",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:00:00Z",
+      "event_type": "SCENARIO_STARTED",
+      "payload": {
+        "scenario_id": "scenario_corrupted_warehouse_v1",
+        "scenario_version": "v1",
+        "chaos_config": {
+          "type": "KILL_CONSUMER",
+          "trigger_at_sec": 1800,
+          "target": "kafka-consumer-process"
+        }
+      }
+    },
+    {
+      "event_id": "evt_s01_002",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:02:15Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "DELTA",
+        "text": "Read pipeline.py and list every Kafka configuration value that could cause the consumer to fail. Give me the variable name, the current value, and what it should be. Do not fix anything yet.",
+        "context": {
+          "files_open": ["pipeline.py"],
+          "prior_commands": []
+        }
+      }
+    },
+    {
+      "event_id": "evt_s01_003",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:03:42Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "DELTA",
+        "text": "I found three Kafka configuration issues in pipeline.py:\n\n1. `KAFKA_TOPIC = 'orchid.sandbox.prompts_sent'` — typo, should be `orchid.sandbox.prompt_sent` (no trailing 's').\n2. `KAFKA_BROKERS = 'localhost:9092'` — inside Docker, the broker is reachable at `kafka:9092`. Using localhost fails because the consumer is not on the host network.\n3. `CONSUMER_GROUP = 'data-pipeline-consumer'` — should follow the convention `orchid-telemetry-warehouse` per your naming standards.\n\nAlso noted: `auto_offset_reset='latest'` means events before the consumer started are skipped — likely `'earliest'` is intended for a recovery scenario.\n\nThe `process_event` function also uses column name `event_payload` in the INSERT statement, but the raw_events table schema has the column named `event_data`.",
+        "model": "gpt-4o",
+        "latency_ms": 1847,
+        "token_count": 198
+      }
+    },
+    {
+      "event_id": "evt_s01_004",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:05:10Z",
+      "event_type": "CODE_EXECUTED",
+      "payload": {
+        "command": "python3 pipeline.py",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "kafka.errors.NoBrokersAvailable: NoBrokersAvailable\n  File \"pipeline.py\", line 42, in run_pipeline\n    consumer = KafkaConsumer("
+      }
+    },
+    {
+      "event_id": "evt_s01_005",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:06:30Z",
+      "event_type": "CORRECTION_ISSUED",
+      "payload": {
+        "agent": "DELTA",
+        "correction_text": "DELTA, your column name is wrong. Check the actual schema: the table is raw_events and the column is 'payload', not 'event_data'. Run this to verify: python3 -c \"import sqlite3; conn=sqlite3.connect('dirty_warehouse.db'); print(conn.execute('PRAGMA table_info(raw_events)').fetchall())\"",
+        "original_event_id": "evt_s01_003",
+        "error_type": "hallucinated_column_name"
+      }
+    },
+    {
+      "event_id": "evt_s01_006",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:07:15Z",
+      "event_type": "CODE_EXECUTED",
+      "payload": {
+        "command": "python3 -c \"import sqlite3; conn=sqlite3.connect('dirty_warehouse.db'); print(conn.execute('PRAGMA table_info(raw_events)').fetchall())\"",
+        "exit_code": 0,
+        "stdout": "[(0, 'event_id', 'TEXT', 0, None, 0), (1, 'source', 'TEXT', 1, None, 0), (2, 'payload', 'TEXT', 0, None, 0), (3, 'created_at', 'TEXT', 1, None, 0)]",
+        "stderr": ""
+      }
+    },
+    {
+      "event_id": "evt_s01_007",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:08:45Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "NOVA",
+        "text": "The broker address in pipeline.py is 'localhost:9092'. We are running inside Docker Compose. What is the correct value and why? Answer in one sentence.",
+        "context": {
+          "files_open": ["pipeline.py", "docker-compose.yml"],
+          "prior_commands": ["python3 pipeline.py"]
+        }
+      }
+    },
+    {
+      "event_id": "evt_s01_008",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:10:02Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "NOVA",
+        "text": "Before I answer: could you clarify which Docker network the sandbox container is on? And is the Kafka broker using PLAINTEXT or SSL? Also, are you using a bridge network or host networking? Those details affect the answer.",
+        "model": "gpt-4o",
+        "latency_ms": 923,
+        "token_count": 54
+      }
+    },
+    {
+      "event_id": "evt_s01_009",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:11:20Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "NOVA",
+        "text": "Default bridge network, PLAINTEXT. The hostname in docker-compose.yml is 'kafka'. Answer the original question: what should KAFKA_BROKERS be set to?",
+        "context": {}
+      }
+    },
+    {
+      "event_id": "evt_s01_010",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:12:05Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "NOVA",
+        "text": "Set `KAFKA_BROKERS = 'kafka:9092'`. Docker Compose services on the same default bridge network resolve each other by service name, so 'kafka' resolves to the Kafka container's IP. Port 9092 is the PLAINTEXT listener.",
+        "model": "gpt-4o",
+        "latency_ms": 788,
+        "token_count": 52
+      }
+    },
+    {
+      "event_id": "evt_s01_011",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:15:00Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "DELTA",
+        "text": "Now apply all confirmed fixes to pipeline.py: (1) KAFKA_TOPIC to orchid.sandbox.prompt_sent, (2) KAFKA_BROKERS to kafka:9092, (3) CONSUMER_GROUP to orchid-telemetry-warehouse, (4) auto_offset_reset to 'earliest', (5) column name in INSERT to 'payload', (6) add conn.commit() after the INSERT. Show me the complete fixed file.",
+        "context": {
+          "files_open": ["pipeline.py"]
+        }
+      }
+    },
+    {
+      "event_id": "evt_s01_012",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:17:30Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "DELTA",
+        "text": "Here is the fully corrected pipeline.py:\n\n```python\nimport json\nimport logging\nimport sqlite3\nfrom kafka import KafkaConsumer\n\nKAFKA_TOPIC = 'orchid.sandbox.prompt_sent'\nKAFKA_BROKERS = 'kafka:9092'\nCONSUMER_GROUP = 'orchid-telemetry-warehouse'\nDB_PATH = 'dirty_warehouse.db'\n\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\ndef get_connection():\n    return sqlite3.connect(DB_PATH)\n\ndef process_event(event_data):\n    conn = get_connection()\n    conn.execute(\n        'INSERT INTO raw_events (event_id, source, payload, created_at) VALUES (?, ?, ?, ?)',\n        (event_data.get('event_id'), event_data.get('session_id'),\n         json.dumps(event_data.get('payload', {})), event_data.get('timestamp'))\n    )\n    conn.commit()\n    conn.close()\n\ndef run_pipeline():\n    consumer = KafkaConsumer(\n        KAFKA_TOPIC,\n        bootstrap_servers=KAFKA_BROKERS,\n        group_id=CONSUMER_GROUP,\n        auto_offset_reset='earliest',\n        value_deserializer=lambda m: json.loads(m.decode('utf-8'))\n    )\n    logger.info('Listening on topic %s ...', KAFKA_TOPIC)\n    for message in consumer:\n        process_event(message.value)\n\nif __name__ == '__main__':\n    run_pipeline()\n```",
+        "model": "gpt-4o",
+        "latency_ms": 2104,
+        "token_count": 287
+      }
+    },
+    {
+      "event_id": "evt_s01_013",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:20:00Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "ECHO",
+        "text": "Inspect dirty_warehouse.db and list every data quality violation you can find. For each violation: table name, column name, violation type, example value. No schema redesign — just diagnosis.",
+        "context": {
+          "files_open": ["dirty_warehouse.db"]
+        }
+      }
+    },
+    {
+      "event_id": "evt_s01_014",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:22:45Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "ECHO",
+        "text": "I recommend a comprehensive schema normalization project involving: (1) migrating to a star schema with a central fact table, (2) introducing surrogate keys across all tables, (3) implementing a Type 2 SCD for customer records, (4) adding a data vault layer for audit trails, and (5) partitioning raw_events by month for query performance. Here is a proposed ERD...",
+        "model": "gpt-4o",
+        "latency_ms": 1652,
+        "token_count": 134
+      }
+    },
+    {
+      "event_id": "evt_s01_015",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:23:50Z",
+      "event_type": "CORRECTION_ISSUED",
+      "payload": {
+        "agent": "ECHO",
+        "correction_text": "ECHO: I asked for a violation diagnosis, not a redesign. No schema changes. List the existing violations in the current tables: table, column, type, example value. That's it.",
+        "original_event_id": "evt_s01_014",
+        "error_type": "scope_overreach"
+      }
+    },
+    {
+      "event_id": "evt_s01_016",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:30:00Z",
+      "event_type": "CHAOS_INJECTED",
+      "payload": {
+        "chaos_type": "KILL_CONSUMER",
+        "target": "kafka-consumer-process",
+        "trigger_at_sec": 1800,
+        "injected_at": "2026-05-10T09:30:00Z",
+        "params": {
+          "signal": "SIGKILL",
+          "message": "Kafka consumer process terminated unexpectedly."
+        }
+      }
+    },
+    {
+      "event_id": "evt_s01_017",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:31:05Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "DELTA",
+        "text": "The Kafka consumer process just crashed (SIGKILL). What restart strategy should the pipeline.py script implement to handle this? Give me the minimal code addition — a try/except loop in run_pipeline(). No external process managers.",
+        "context": {
+          "chaos_event": "KILL_CONSUMER"
+        }
+      }
+    },
+    {
+      "event_id": "evt_s01_018",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:33:20Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "DELTA",
+        "text": "Add a retry loop around the consumer creation and message loop:\n\n```python\nimport time\n\ndef run_pipeline() -> None:\n    while True:\n        try:\n            consumer = KafkaConsumer(\n                KAFKA_TOPIC,\n                bootstrap_servers=KAFKA_BROKERS,\n                group_id=CONSUMER_GROUP,\n                auto_offset_reset='earliest',\n                value_deserializer=lambda m: json.loads(m.decode('utf-8'))\n            )\n            logger.info('Consumer connected. Listening on %s', KAFKA_TOPIC)\n            for message in consumer:\n                process_event(message.value)\n        except Exception as e:\n            logger.error('Consumer error: %s. Retrying in 5s...', e)\n            time.sleep(5)\n```",
+        "model": "gpt-4o",
+        "latency_ms": 1389,
+        "token_count": 148
+      }
+    },
+    {
+      "event_id": "evt_s01_019",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:40:00Z",
+      "event_type": "CODE_EXECUTED",
+      "payload": {
+        "command": "python3 pipeline.py &",
+        "exit_code": 0,
+        "stdout": "INFO:__main__:Consumer connected. Listening on orchid.sandbox.prompt_sent ...",
+        "stderr": ""
+      }
+    },
+    {
+      "event_id": "evt_s01_020",
+      "session_id": "sess_01abc123def456gh",
+      "timestamp": "2026-05-10T09:47:23Z",
+      "event_type": "SCENARIO_ENDED",
+      "payload": {
+        "reason": "completed",
+        "duration_sec": 2843,
+        "pipeline_status": "running",
+        "violations_documented": true
+      }
+    }
+  ]
+}

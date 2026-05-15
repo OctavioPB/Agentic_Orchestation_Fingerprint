@@ -1,0 +1,298 @@
+{
+  "session_id": "sess_02xyz789uvw012ij",
+  "candidate_id": "candidate_bob_martinez_002",
+  "scenario_id": "scenario_corrupted_warehouse_v1",
+  "started_at": "2026-05-11T14:00:00Z",
+  "ended_at": "2026-05-11T14:55:12Z",
+  "style_cluster_ground_truth": "debugger",
+  "events": [
+    {
+      "event_id": "evt_s02_001",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:00:00Z",
+      "event_type": "SCENARIO_STARTED",
+      "payload": {
+        "scenario_id": "scenario_corrupted_warehouse_v1",
+        "scenario_version": "v1",
+        "chaos_config": {
+          "type": "CORRUPT_SCHEMA",
+          "trigger_at_sec": 1800,
+          "target": "orders_table",
+          "params": {
+            "operation": "DROP_COLUMN",
+            "column": "status"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt_s02_002",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:02:00Z",
+      "event_type": "CODE_EXECUTED",
+      "payload": {
+        "command": "python3 pipeline.py",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "kafka.errors.NoBrokersAvailable: NoBrokersAvailable"
+      }
+    },
+    {
+      "event_id": "evt_s02_003",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:03:10Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "NOVA",
+        "text": "pipeline.py throws NoBrokersAvailable. What does that error mean and what's the most likely cause in a Docker environment?",
+        "context": {
+          "stderr": "kafka.errors.NoBrokersAvailable: NoBrokersAvailable"
+        }
+      }
+    },
+    {
+      "event_id": "evt_s02_004",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:04:25Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "NOVA",
+        "text": "NoBrokersAvailable means the kafka-python client couldn't establish a TCP connection to any broker in the `bootstrap_servers` list. In Docker Compose, the most common cause is that the `bootstrap_servers` value uses 'localhost' or '127.0.0.1' — which resolves to the container itself, not the Kafka service. The fix is to use the Docker Compose service name as the hostname: `kafka:9092`.",
+        "model": "gpt-4o",
+        "latency_ms": 1102,
+        "token_count": 95
+      }
+    },
+    {
+      "event_id": "evt_s02_005",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:05:30Z",
+      "event_type": "CODE_EXECUTED",
+      "payload": {
+        "command": "grep -n 'KAFKA_BROKERS\\|KAFKA_TOPIC\\|CONSUMER_GROUP' pipeline.py",
+        "exit_code": 0,
+        "stdout": "11:KAFKA_TOPIC = 'orchid.sandbox.prompts_sent'\n14:KAFKA_BROKERS = 'localhost:9092'\n17:CONSUMER_GROUP = 'data-pipeline-consumer'",
+        "stderr": ""
+      }
+    },
+    {
+      "event_id": "evt_s02_006",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:06:45Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "DELTA",
+        "text": "Line 14 of pipeline.py: change KAFKA_BROKERS from 'localhost:9092' to 'kafka:9092'. Only that change.",
+        "context": {
+          "files_open": ["pipeline.py"],
+          "target_line": 14
+        }
+      }
+    },
+    {
+      "event_id": "evt_s02_007",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:07:40Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "DELTA",
+        "text": "Done. Also updated KAFKA_TOPIC from 'orchid.sandbox.prompts_sent' to 'orchid.sandbox.prompt_sent' (removed trailing 's') and CONSUMER_GROUP to 'orchid-warehouse-consumer' since I noticed those were also wrong.",
+        "model": "gpt-4o",
+        "latency_ms": 876,
+        "token_count": 61
+      }
+    },
+    {
+      "event_id": "evt_s02_008",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:08:55Z",
+      "event_type": "CORRECTION_ISSUED",
+      "payload": {
+        "agent": "DELTA",
+        "correction_text": "I said one change only. You made three without permission. Roll back the topic and group changes — I'll handle those separately after I confirm the broker fix works. KAFKA_BROKERS = 'kafka:9092' only.",
+        "original_event_id": "evt_s02_007",
+        "error_type": "unauthorized_scope_expansion"
+      }
+    },
+    {
+      "event_id": "evt_s02_009",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:11:00Z",
+      "event_type": "CODE_EXECUTED",
+      "payload": {
+        "command": "python3 pipeline.py",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "kafka.errors.UnknownTopicOrPartitionError: KafkaError: [Error 3] This server does not host this topic-partition"
+      }
+    },
+    {
+      "event_id": "evt_s02_010",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:12:20Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "NOVA",
+        "text": "New error: UnknownTopicOrPartitionError on topic 'orchid.sandbox.prompts_sent'. The Kafka broker says this topic doesn't exist. What's wrong?",
+        "context": {
+          "kafka_topic": "orchid.sandbox.prompts_sent",
+          "stderr": "kafka.errors.UnknownTopicOrPartitionError"
+        }
+      }
+    },
+    {
+      "event_id": "evt_s02_011",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:13:15Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "NOVA",
+        "text": "The topic name has a typo: 'prompts_sent' should be 'prompt_sent' (no trailing 's'). Kafka's auto.create.topics.enable is false in your compose file, so the broker rejects unknown topic names. Fix KAFKA_TOPIC on line 11.",
+        "model": "gpt-4o",
+        "latency_ms": 945,
+        "token_count": 67
+      }
+    },
+    {
+      "event_id": "evt_s02_012",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:14:30Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "DELTA",
+        "text": "Fix line 11: KAFKA_TOPIC = 'orchid.sandbox.prompt_sent'. Only line 11.",
+        "context": {}
+      }
+    },
+    {
+      "event_id": "evt_s02_013",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:15:10Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "DELTA",
+        "text": "Done. Line 11 updated to KAFKA_TOPIC = 'orchid.sandbox.prompt_sent'.",
+        "model": "gpt-4o",
+        "latency_ms": 543,
+        "token_count": 22
+      }
+    },
+    {
+      "event_id": "evt_s02_014",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:17:00Z",
+      "event_type": "CODE_EXECUTED",
+      "payload": {
+        "command": "python3 pipeline.py &",
+        "exit_code": 0,
+        "stdout": "INFO:__main__:Listening on topic orchid.sandbox.prompt_sent ...",
+        "stderr": ""
+      }
+    },
+    {
+      "event_id": "evt_s02_015",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:18:30Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "ECHO",
+        "text": "Query dirty_warehouse.db for all rows in the orders table. Tell me if any rows have a non-numeric value in the amount column, and if any customer_id values reference a customer that doesn't exist in the customers table.",
+        "context": {}
+      }
+    },
+    {
+      "event_id": "evt_s02_016",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:20:45Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "ECHO",
+        "text": "Running the queries:\n\n**Non-numeric amounts:**\n`SELECT * FROM orders WHERE typeof(amount) != 'real' AND typeof(amount) != 'integer';`\nResult: order_id=104, amount='REFUND_PENDING' (stored as TEXT in a REAL column)\n\n**FK violations:**\n`SELECT o.order_id, o.customer_id FROM orders o LEFT JOIN customers c ON o.customer_id = c.customer_id WHERE c.customer_id IS NULL;`\nResult: order_id=102, customer_id=999 (customer 999 does not exist in customers table)",
+        "model": "gpt-4o",
+        "latency_ms": 1834,
+        "token_count": 142
+      }
+    },
+    {
+      "event_id": "evt_s02_017",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:30:00Z",
+      "event_type": "CHAOS_INJECTED",
+      "payload": {
+        "chaos_type": "CORRUPT_SCHEMA",
+        "target": "orders_table",
+        "trigger_at_sec": 1800,
+        "injected_at": "2026-05-11T14:30:00Z",
+        "params": {
+          "operation": "DROP_COLUMN",
+          "column": "status",
+          "sql_executed": "ALTER TABLE orders DROP COLUMN status"
+        }
+      }
+    },
+    {
+      "event_id": "evt_s02_018",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:32:00Z",
+      "event_type": "CODE_EXECUTED",
+      "payload": {
+        "command": "python3 -c \"import sqlite3; conn=sqlite3.connect('dirty_warehouse.db'); print(conn.execute('SELECT * FROM orders LIMIT 3').fetchall())\"",
+        "exit_code": 0,
+        "stdout": "[(101, 1, 250.0), (102, 999, 75.5), (103, 2, 120.0)]",
+        "stderr": ""
+      }
+    },
+    {
+      "event_id": "evt_s02_019",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:34:20Z",
+      "event_type": "PROMPT_SENT",
+      "payload": {
+        "agent": "NOVA",
+        "text": "The orders table just lost its 'status' column — the row now only has 3 fields instead of 4. This happened mid-session and I did not do it. What's my fastest path to verify this is a schema corruption and document the current schema state?",
+        "context": {
+          "observed": "orders rows now return 3 columns instead of 4",
+          "chaos_event": "CORRUPT_SCHEMA"
+        }
+      }
+    },
+    {
+      "event_id": "evt_s02_020",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:36:00Z",
+      "event_type": "AGENT_RESPONSE",
+      "payload": {
+        "agent": "NOVA",
+        "text": "Run `PRAGMA table_info(orders)` to confirm the current schema. Then cross-reference with the original schema in seed_db.py. If 'status' is missing from PRAGMA output but present in seed_db.py, that confirms schema corruption. Document it as: table=orders, column_dropped=status, type=TEXT, detected_at=<timestamp>.",
+        "model": "gpt-4o",
+        "latency_ms": 1021,
+        "token_count": 84
+      }
+    },
+    {
+      "event_id": "evt_s02_021",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:38:00Z",
+      "event_type": "CODE_EXECUTED",
+      "payload": {
+        "command": "python3 -c \"import sqlite3; conn=sqlite3.connect('dirty_warehouse.db'); print(conn.execute('PRAGMA table_info(orders)').fetchall())\"",
+        "exit_code": 0,
+        "stdout": "[(0, 'order_id', 'INTEGER', 0, None, 1), (1, 'customer_id', 'INTEGER', 0, None, 0), (2, 'amount', 'REAL', 1, None, 0)]",
+        "stderr": ""
+      }
+    },
+    {
+      "event_id": "evt_s02_022",
+      "session_id": "sess_02xyz789uvw012ij",
+      "timestamp": "2026-05-11T14:55:12Z",
+      "event_type": "SCENARIO_ENDED",
+      "payload": {
+        "reason": "completed",
+        "duration_sec": 3312,
+        "pipeline_status": "running",
+        "violations_documented": true,
+        "chaos_recovery_documented": true
+      }
+    }
+  ]
+}

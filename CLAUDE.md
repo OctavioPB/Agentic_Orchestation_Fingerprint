@@ -1,0 +1,297 @@
+# CLAUDE.md — Agent Constitution
+## Project: Agentic Orchestration Fingerprinting (`orchid`)
+
+> This file governs all AI-assisted development on this codebase.
+> Read it in full before writing a single line of code.
+> UI and brand decisions are **out of scope here** — see [`BRAND.md`](./BRAND.md).
+
+---
+
+## 1. Project Purpose
+
+`orchid` is a **next-generation technical assessment platform** that evaluates candidates not on their code output, but on their **orchestration cognition** — how they lead, correct, and reason alongside AI sub-agents under real operational pressure.
+
+The product captures multimodal telemetry from a live sandbox environment, processes it through a semantic analysis pipeline, and produces an **Algorithmic Leadership Profile** for hiring teams.
+
+**This is not a cheating-detection tool. It is a leadership-signal extractor.**
+
+---
+
+## 2. Repository Structure
+
+```
+orchid/
+├── CLAUDE.md                  ← You are here
+├── BRAND.md                   ← All UI/design decisions live here
+├── PLAN.md                    ← Sprint roadmap
+│
+├── services/
+│   ├── sandbox/               ← Dockerized VS Code + terminal (candidate env)
+│   ├── telemetry/             ← Kafka producers (prompt stream, terminal logs)
+│   ├── orchestrator/          ← Airflow DAGs (scenario lifecycle, chaos injection)
+│   ├── evaluator/             ← Shadow Agent + embedding analysis (FastAPI)
+│   ├── api/                   ← Multi-tenant REST API (FastAPI)
+│   └── dashboard/             ← Cognitive Blueprint Dashboard (Next.js 14)
+│
+├── infra/
+│   ├── docker/                ← Compose files per service
+│   ├── kafka/                 ← Topic definitions, schema registry
+│   ├── airflow/               ← DAG definitions only (no business logic)
+│   └── qdrant/                ← Collection configs and index schemas
+│
+├── data/
+│   ├── synthetic/             ← Synthetic candidate sessions for testing
+│   ├── scenarios/             ← Dirty DB seeds, broken pipeline configs
+│   └── benchmarks/            ← Senior Engineer embedding reference profiles
+│
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── eval/                  ← LLM evaluation harness (not unit tests)
+│
+└── docs/
+    ├── adr/                   ← Architecture Decision Records
+    └── schema/                ← Kafka topic schemas, API contracts
+```
+
+---
+
+## 3. Tech Stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Sandbox runtime | Docker + code-server | Isolated candidate environment |
+| Telemetry bus | Apache Kafka | Real-time event streaming |
+| Orchestration | Apache Airflow | DAG-based scenario lifecycle + chaos |
+| Vector store | Qdrant | Embedding storage + similarity search |
+| Graph store | Neo4j | Interaction graph (human ↔ agents) |
+| Evaluation API | FastAPI | Shadow Agent, embedding comparison |
+| Multi-tenant API | FastAPI | External hiring platform integration |
+| Dashboard | Next.js 14 | Cognitive Blueprint UI |
+| Embeddings | OpenAI `text-embedding-3-large` | Prompt and interaction vectorization |
+| LLM (evaluator) | Claude (Anthropic SDK) | Shadow Agent reasoning + report gen |
+| LLM (sub-agents) | GPT-4o | The three candidate-facing sub-agents |
+
+---
+
+## 4. Core Domain Concepts
+
+### 4.1 Orchestration Telemetry Events
+
+All events share this envelope:
+
+```python
+{
+  "event_id": str,           # UUID v4
+  "session_id": str,         # Ties all events to one candidate session
+  "timestamp": str,          # ISO 8601 UTC
+  "event_type": str,         # See enum below
+  "payload": dict            # Event-specific fields
+}
+```
+
+**Event types** (`event_type` enum):
+- `PROMPT_SENT` — candidate instruction to a sub-agent
+- `AGENT_RESPONSE` — sub-agent reply (includes model, latency_ms)
+- `CORRECTION_ISSUED` — candidate explicitly corrects/overrides agent output
+- `CODE_EXECUTED` — terminal execution attempt (includes exit_code)
+- `FOCUS_SHIFT` — optional eye-tracking metadata
+- `CHAOS_INJECTED` — Airflow-triggered fault event
+- `SCENARIO_STARTED` / `SCENARIO_ENDED`
+
+### 4.2 Orchestration Fingerprint
+
+The final output of one assessment session. A structured JSON object containing:
+
+```python
+{
+  "session_id": str,
+  "candidate_id": str,
+  "scenario_id": str,
+  "scores": {
+    "efficiency_ratio": float,     # Human value-add over baseline AI solo run
+    "trust_calibration": float,    # 0 = blind trust, 1 = audits effectively
+    "correction_velocity": float,  # Speed of recognizing and fixing hallucinations
+    "decomposition_score": float,  # Quality of task breakdown to sub-agents
+    "chaos_resilience": float      # Recovery quality after injected fault
+  },
+  "style_cluster": str,           # "architect" | "executor" | "debugger" | "delegator"
+  "reasoning_trace": list[str],   # Reconstructed thought-tree from Shadow Agent
+  "interaction_graph": dict,      # Nodes + edges for dashboard rendering
+  "benchmark_delta": float,       # Cosine distance from senior engineer profiles
+  "report_markdown": str          # Human-readable narrative generated by LLM
+}
+```
+
+### 4.3 Scenario
+
+A self-contained test case. Each scenario includes:
+- A **dirty database seed** (schema violations, duplicate keys, nulls in FK columns)
+- A **broken Kafka pipeline config** (misconfigured consumer group, wrong topic names)
+- An **expected resolution path** (used only for `benchmark_delta`, never shown to candidate)
+- **Chaos injection timing** (which minute, which component, what fault)
+
+### 4.4 Shadow Agent
+
+The evaluator LLM that observes the entire session. It receives a structured transcript of all `PROMPT_SENT` and `CORRECTION_ISSUED` events and outputs:
+- A quality score for each prompt (clarity, specificity, context-richness)
+- A reasoning trace reconstruction
+- The style cluster classification
+
+The Shadow Agent **never sees the code that was generated**, only the human's instructions.
+
+### 4.5 Sub-Agents (The Team the Candidate Leads)
+
+Three GPT-4o instances with distinct personas, deliberately imperfect:
+
+| Agent | Persona | Intentional Weakness |
+|---|---|---|
+| `DELTA` | Data Engineer | Occasionally hallucinates column names |
+| `NOVA` | Pipeline Debugger | Overly cautious, asks too many clarifying questions |
+| `ECHO` | Schema Architect | Proposes valid but over-engineered solutions |
+
+---
+
+## 5. Coding Standards
+
+### 5.1 Python (services/evaluator, services/api, services/telemetry)
+
+- Python 3.11+, type hints everywhere, no `Any` unless justified with a comment
+- `pydantic` v2 for all data models — no raw dicts crossing service boundaries
+- `ruff` for linting, `black` for formatting (line length: 100)
+- FastAPI: use dependency injection for DB connections, Kafka producers, and LLM clients
+- All LLM calls wrapped in a `LLMClient` abstraction — never call `anthropic` or `openai` SDKs directly in business logic
+- Async-first: use `asyncio` and `httpx`, never `requests` in service code
+- Log structured JSON using `structlog`, never `print()`
+
+```python
+# Good
+async def evaluate_session(session_id: str, client: LLMClient = Depends(get_llm_client)) -> OrchestraFingerprint:
+    ...
+
+# Bad
+def evaluate_session(session_id):
+    import anthropic
+    client = anthropic.Anthropic()
+    ...
+```
+
+### 5.2 TypeScript / Next.js (services/dashboard)
+
+- Next.js 14 App Router, TypeScript strict mode
+- All UI/design decisions deferred to [`BRAND.md`](./BRAND.md)
+- No inline styles — use CSS modules or Tailwind (see BRAND.md for which)
+- API calls via `services/` layer — no `fetch()` calls directly in components
+- `zod` for all API response validation on the client
+- React Server Components by default; opt into `'use client'` explicitly with a comment explaining why
+
+### 5.3 Airflow DAGs (infra/airflow)
+
+- DAG files contain **only DAG definition** — all logic lives in `services/orchestrator/`
+- Use `@task` decorator (TaskFlow API), no classic operators unless necessary
+- All DAG IDs prefixed with `orchid_` (e.g., `orchid_scenario_lifecycle`)
+- Idempotent tasks — every task must be safely re-runnable
+- Never hardcode credentials — use Airflow Connections and Variables
+
+### 5.4 Kafka
+
+- All topic names follow `orchid.{service}.{event_type}` (e.g., `orchid.sandbox.prompt_sent`)
+- Schema Registry enforced — no schemaless producers
+- Consumer groups named `orchid-{service}-{purpose}` (e.g., `orchid-evaluator-fingerprint`)
+
+---
+
+## 6. Environment Variables
+
+All secrets and configuration via environment variables. Never committed to git.
+
+```bash
+# LLM
+ANTHROPIC_API_KEY=          # Shadow Agent (Claude)
+OPENAI_API_KEY=             # Sub-agents (GPT-4o) + embeddings
+
+# Kafka
+KAFKA_BOOTSTRAP_SERVERS=
+KAFKA_SCHEMA_REGISTRY_URL=
+
+# Databases
+QDRANT_HOST=
+QDRANT_PORT=
+QDRANT_API_KEY=
+NEO4J_URI=
+NEO4J_USER=
+NEO4J_PASSWORD=
+
+# Airflow
+AIRFLOW__CORE__FERNET_KEY=
+AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=
+
+# API
+API_SECRET_KEY=             # JWT signing
+TENANT_DB_URL=              # Multi-tenant postgres
+
+# Sandbox
+SANDBOX_IMAGE=              # Docker image tag for candidate env
+SANDBOX_MAX_DURATION_SEC=   # Session timeout (default: 3600)
+
+# Feature flags
+ENABLE_EYE_TRACKING=false
+ENABLE_CHAOS_INJECTION=true
+```
+
+---
+
+## 7. Hard Rules
+
+1. **No real candidate data in tests.** All test fixtures use synthetic sessions from `data/synthetic/`. Generating fixtures from real sessions is a GDPR violation.
+
+2. **Shadow Agent is read-only.** The evaluator LLM observes and scores. It never sends messages to the candidate or to sub-agents during an active session. Violation = assessment integrity failure.
+
+3. **Chaos injection is Airflow's job.** Never inject faults from application code. All chaos events are DAG-triggered and logged as `CHAOS_INJECTED` events in Kafka before the fault lands.
+
+4. **Evaluation is process-only, never output-only.** The `efficiency_ratio` score must always be computed relative to a baseline "AI-solo" run of the same scenario. No shortcutting with static baselines.
+
+5. **Sub-agent personas are stable.** DELTA, NOVA, and ECHO's system prompts are versioned in `data/scenarios/agents/`. Changes require a new scenario version, not an edit.
+
+6. **All UI decisions live in [`BRAND.md`](./BRAND.md).** Color palette, typography, component library, layout system, motion — none of it belongs here. If you're tempted to write a CSS hex code in this file, stop.
+
+7. **LLM calls are instrumented.** Every call to any LLM must emit a `latency_ms`, `token_count`, and `model_version` structured log. Cost observability is non-negotiable.
+
+---
+
+## 8. Architecture Decision Records
+
+Document every significant architectural choice in `docs/adr/`. Use the format:
+
+```markdown
+# ADR-{NNN}: {Title}
+**Status**: Accepted | Superseded | Deprecated
+**Date**: YYYY-MM-DD
+**Context**: Why this decision was needed.
+**Decision**: What was decided.
+**Consequences**: What this enables and what it forecloses.
+```
+
+Current ADRs to create on project init:
+- `ADR-001`: Why Qdrant over pgvector for embedding storage
+- `ADR-002`: Why Claude for Shadow Agent vs GPT-4o
+- `ADR-003`: Why code-server over custom sandbox implementation
+- `ADR-004`: Telemetry event schema versioning strategy
+
+---
+
+## 9. Testing Philosophy
+
+- **Unit tests**: Pure logic only. No Kafka, no DB, no LLM calls.
+- **Integration tests**: Use `testcontainers` for Kafka and Qdrant. Never mock infrastructure.
+- **LLM eval tests** (`tests/eval/`): Use a fixed synthetic session corpus. Assert on score distributions, not exact values. Run in CI on schedule, not on every PR.
+- Target: 80% unit coverage on `services/evaluator` and `services/api`. Dashboard components are excluded from coverage targets.
+
+---
+
+## 10. What This System Does Not Do
+
+- It does **not** rank candidates against each other by default — it produces individual profiles.
+- It does **not** evaluate code correctness — that is intentionally out of scope.
+- It does **not** store raw video or audio — only structured telemetry events.
+- It does **not** make a hire/no-hire decision — it surfaces signals for human reviewers.

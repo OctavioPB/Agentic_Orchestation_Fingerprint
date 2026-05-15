@@ -1,0 +1,4 @@
+# Workspace Python dependencies — installed in the candidate sandbox image.
+# These are the packages available for the candidate to use; NOT service dependencies.
+kafka-python>=2.0.0
+pandas>=2.0.0
