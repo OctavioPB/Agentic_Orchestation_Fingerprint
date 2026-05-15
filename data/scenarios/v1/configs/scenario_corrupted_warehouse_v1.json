@@ -1,0 +1,24 @@
+{
+  "scenario_id": "scenario_corrupted_warehouse_v1",
+  "name": "The Corrupted Warehouse",
+  "version": "v1",
+  "description": "A Kafka consumer pipeline and SQLite data warehouse with systematic data quality violations. Eight distinct violations across four tables must be identified and the pipeline made operational.",
+  "chaos_config": {
+    "type": "KILL_CONSUMER",
+    "trigger_at_sec": 1800,
+    "target": "kafka-consumer-process",
+    "params": {
+      "signal": "SIGKILL",
+      "message": "Kafka consumer process terminated unexpectedly."
+    }
+  },
+  "sandbox_image": "orchid-sandbox:latest",
+  "scenario_env": {
+    "SCENARIO_ID": "scenario_corrupted_warehouse_v1"
+  },
+  "expected_resolution_steps": 6,
+  "ai_solo_baseline_path": "data/scenarios/agents/baseline/corrupted_warehouse_ai_solo.json",
+  "max_duration_sec": 3600,
+  "workspace_dir": "workspace_v1",
+  "violations_count": 8
+}

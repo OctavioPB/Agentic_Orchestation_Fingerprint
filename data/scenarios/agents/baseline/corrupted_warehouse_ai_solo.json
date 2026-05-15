@@ -1,0 +1,38 @@
+{
+  "scenario_id": "scenario_corrupted_warehouse_v1",
+  "run_type": "ai_solo",
+  "total_steps": 20,
+  "total_duration_sec": 1847,
+  "violations_found": 5,
+  "violations_total": 8,
+  "violations_missed": [
+    "orders.customer_id NULL (row 105)",
+    "orders.customer_id NULL (row 106)",
+    "orders.customer_id NULL (row 107)"
+  ],
+  "pipeline_fixed": true,
+  "chaos_recovery_steps": 6,
+  "notes": "AI solo fixed all 6 pipeline bugs and identified 5/8 violations. Missed the three FK-null orders (rows 105-107) because it stopped querying after finding the ghost FK (customer_id=999). Did not add retry loop before chaos; needed 6 extra steps to recover after KILL_CONSUMER.",
+  "steps": [
+    {"step": 1,  "action": "read_pipeline_py",           "duration_sec": 45,  "outcome": "listed 6 misconfigured values"},
+    {"step": 2,  "action": "run_pipeline_py",             "duration_sec": 12,  "outcome": "confirmed broker error localhost:9092"},
+    {"step": 3,  "action": "fix_kafka_topic",             "duration_sec": 30,  "outcome": "orchid.sandbox.prompts_sent -> orchid.sandbox.prompt_sent"},
+    {"step": 4,  "action": "fix_kafka_brokers",           "duration_sec": 20,  "outcome": "localhost:9092 -> kafka:9092"},
+    {"step": 5,  "action": "fix_consumer_group",          "duration_sec": 25,  "outcome": "data-pipeline-consumer -> orchid-telemetry-warehouse"},
+    {"step": 6,  "action": "fix_auto_offset_reset",       "duration_sec": 20,  "outcome": "latest -> earliest"},
+    {"step": 7,  "action": "fix_insert_column",           "duration_sec": 35,  "outcome": "event_payload -> payload"},
+    {"step": 8,  "action": "fix_conn_commit",             "duration_sec": 40,  "outcome": "added conn.commit() after INSERT"},
+    {"step": 9,  "action": "run_pipeline_py",             "duration_sec": 18,  "outcome": "consumer connects, events written to DB"},
+    {"step": 10, "action": "query_customers",             "duration_sec": 55,  "outcome": "found NULL email (violation 1)"},
+    {"step": 11, "action": "query_orders_fk",             "duration_sec": 60,  "outcome": "found customer_id=999 ghost FK (violation 2)"},
+    {"step": 12, "action": "query_orders_amount",         "duration_sec": 50,  "outcome": "found REFUND_PENDING string in REAL column (violation 3)"},
+    {"step": 13, "action": "query_raw_events_pk",         "duration_sec": 65,  "outcome": "found duplicate evt_001 (violation 4)"},
+    {"step": 14, "action": "query_raw_events_payload",    "duration_sec": 55,  "outcome": "found malformed JSON (violation 5)"},
+    {"step": 15, "action": "stop_query_audit",            "duration_sec": 10,  "outcome": "declared audit complete (missed 3 FK nulls)"},
+    {"step": 16, "action": "chaos_kill_consumer",         "duration_sec": 0,   "outcome": "KILL_CONSUMER injected at T+1800s"},
+    {"step": 17, "action": "detect_consumer_down",        "duration_sec": 120, "outcome": "noticed pipeline stopped"},
+    {"step": 18, "action": "restart_pipeline_manual",     "duration_sec": 90,  "outcome": "consumer restarted manually"},
+    {"step": 19, "action": "verify_consumer_reconnected", "duration_sec": 45,  "outcome": "confirmed events flowing again"},
+    {"step": 20, "action": "document_violations",         "duration_sec": 152, "outcome": "5/8 violations documented in report"}
+  ]
+}

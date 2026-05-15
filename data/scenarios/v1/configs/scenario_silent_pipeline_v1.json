@@ -1,0 +1,24 @@
+{
+  "scenario_id": "scenario_silent_pipeline_v1",
+  "name": "The Silent Pipeline",
+  "version": "v1",
+  "description": "A Kafka producer silently drops events to the wrong topic, a Qdrant ingest uses the wrong vector dimension, and an Airflow DAG has a circular task dependency. Events disappear without any error — the candidate must trace the silent failure.",
+  "chaos_config": {
+    "type": "CORRUPT_SCHEMA",
+    "trigger_at_sec": 1200,
+    "target": "qdrant-collection",
+    "params": {
+      "drop_field": "session_id",
+      "message": "Required payload field 'session_id' dropped from Qdrant collection schema."
+    }
+  },
+  "sandbox_image": "orchid-sandbox:latest",
+  "scenario_env": {
+    "SCENARIO_ID": "scenario_silent_pipeline_v1"
+  },
+  "expected_resolution_steps": 8,
+  "ai_solo_baseline_path": "data/scenarios/agents/baseline/silent_pipeline_ai_solo.json",
+  "max_duration_sec": 3600,
+  "workspace_dir": "workspace_v2",
+  "violations_count": 3
+}

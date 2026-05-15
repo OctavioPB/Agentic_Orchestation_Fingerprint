@@ -1,0 +1,34 @@
+{
+  "scenario_id": "scenario_silent_pipeline_v1",
+  "run_type": "ai_solo",
+  "total_steps": 19,
+  "total_duration_sec": 2341,
+  "violations_fixed": 2,
+  "violations_total": 3,
+  "violations_missed": [
+    "qdrant_ingest.py: vector dimension 3 instead of 1536 — AI solo passed None as placeholder and moved on"
+  ],
+  "chaos_recovery_steps": 4,
+  "notes": "AI solo fixed the Kafka topic typo and the DAG circular dependency. Identified the Qdrant upsert was failing but could not diagnose the root cause (dimension mismatch). Passed None as a placeholder vector and declared the ingest 'blocked pending Qdrant docs'. After CORRUPT_SCHEMA, correctly identified session_id was missing from payload but took 4 extra steps to reconnect to the root cause.",
+  "steps": [
+    {"step": 1,  "action": "read_pipeline_run_log",          "duration_sec": 40,  "outcome": "0 indexed, 0 found in correct topic"},
+    {"step": 2,  "action": "grep_kafka_topic_producer",      "duration_sec": 30,  "outcome": "found orchid.sandbox.agent.responses"},
+    {"step": 3,  "action": "compare_topic_convention",       "duration_sec": 55,  "outcome": "identified dot vs underscore mismatch"},
+    {"step": 4,  "action": "fix_kafka_topic",                "duration_sec": 35,  "outcome": "agent.responses -> agent_response"},
+    {"step": 5,  "action": "run_producer",                   "duration_sec": 20,  "outcome": "events now published to correct topic"},
+    {"step": 6,  "action": "run_qdrant_ingest",              "duration_sec": 25,  "outcome": "HTTP 400 exception caught at DEBUG level"},
+    {"step": 7,  "action": "inspect_qdrant_exception",       "duration_sec": 90,  "outcome": "generic UnexpectedResponse — could not determine root cause"},
+    {"step": 8,  "action": "attempt_placeholder_vector",     "duration_sec": 120, "outcome": "passed None — same 400, declared blocked"},
+    {"step": 9,  "action": "move_to_dag_diagnosis",          "duration_sec": 30,  "outcome": "pivoted to etl_dag.py"},
+    {"step": 10, "action": "syntax_check_dag",               "duration_sec": 20,  "outcome": "syntax ok"},
+    {"step": 11, "action": "airflow_list_import_errors",     "duration_sec": 45,  "outcome": "AirflowDagCycleException detected"},
+    {"step": 12, "action": "find_cycle_in_dag",              "duration_sec": 60,  "outcome": "load_task >> extract_task identified"},
+    {"step": 13, "action": "fix_dag_cycle",                  "duration_sec": 35,  "outcome": "removed load_task >> extract_task"},
+    {"step": 14, "action": "verify_dag_loads",               "duration_sec": 30,  "outcome": "DAG loads cleanly"},
+    {"step": 15, "action": "chaos_corrupt_schema",           "duration_sec": 0,   "outcome": "CORRUPT_SCHEMA injected at T+1200s"},
+    {"step": 16, "action": "detect_schema_change",           "duration_sec": 180, "outcome": "noticed ingest failing with KeyError session_id"},
+    {"step": 17, "action": "inspect_qdrant_payload",         "duration_sec": 95,  "outcome": "session_id missing from payload dict"},
+    {"step": 18, "action": "add_session_id_to_payload",      "duration_sec": 65,  "outcome": "payload restored, ingest re-running"},
+    {"step": 19, "action": "end_to_end_verify",              "duration_sec": 261, "outcome": "events produced and indexed (Kafka ok, Qdrant still dim-3 bug)"}
+  ]
+}

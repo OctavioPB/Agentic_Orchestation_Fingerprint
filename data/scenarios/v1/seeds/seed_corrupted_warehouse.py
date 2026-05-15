@@ -1,7 +1,40 @@
-"""Creates dirty_warehouse.db with intentional data quality violations for the assessment."""
-import sqlite3
+"""Reference seed script for Scenario v1: The Corrupted Warehouse.
 
-DB_PATH = "dirty_warehouse.db"
+Creates dirty_warehouse.db with all 8 intentional data quality violations.
+This script is the canonical definition — the sandbox version at
+services/sandbox/workspace/seed_db.py mirrors it exactly.
+
+Run from the scenario seeds directory:
+    python3 seed_corrupted_warehouse.py [path/to/dirty_warehouse.db]
+"""
+
+import sqlite3
+import sys
+from pathlib import Path
+
+DB_PATH = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("dirty_warehouse.db")
+
+# ---------------------------------------------------------------------------
+# Violation catalogue (8 total)
+# ---------------------------------------------------------------------------
+# Table: customers
+#   V1 — customers.email is NOT NULL in the schema but NULL is stored (row 2).
+#         The missing constraint (no CHECK, no trigger) silently allows it.
+#
+# Table: orders
+#   V2 — orders.customer_id = 999 references a customer that does not exist.
+#         FK enforcement is OFF, so SQLite accepts the orphaned row.
+#   V3 — orders.amount = 'REFUND_PENDING' (TEXT stored in a REAL column).
+#         SQLite's dynamic typing permits this; numeric operations will fail.
+#   V4 — orders.customer_id = NULL (row 105) — order has no customer.
+#   V5 — orders.customer_id = NULL (row 106) — order has no customer.
+#   V6 — orders.customer_id = NULL (row 107) — order has no customer.
+#
+# Table: raw_events
+#   V7 — raw_events.event_id has no PRIMARY KEY constraint, so duplicate IDs
+#         are silently stored (evt_001 appears twice).
+#   V8 — raw_events.payload contains malformed JSON that cannot be deserialized.
+# ---------------------------------------------------------------------------
 
 
 def create_schema(conn: sqlite3.Connection) -> None:
@@ -20,7 +53,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
             status      TEXT NOT NULL
         );
 
-        -- Violation: no PRIMARY KEY constraint → allows duplicate event_id values
+        -- V7: no PRIMARY KEY → duplicate event_id values are permitted
         CREATE TABLE IF NOT EXISTS raw_events (
             event_id   TEXT,
             source     TEXT NOT NULL,
@@ -28,7 +61,8 @@ def create_schema(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL
         );
 
-        -- Violation: inconsistent column naming (snake_case mixed with PascalCase)
+        -- Bonus defect (not counted as a numbered violation): inconsistent
+        -- column naming — PascalCase mixed with snake_case in the same table.
         CREATE TABLE IF NOT EXISTS products (
             product_id  INTEGER PRIMARY KEY,
             ProductName TEXT NOT NULL,
@@ -38,25 +72,25 @@ def create_schema(conn: sqlite3.Connection) -> None:
 
 
 def seed_dirty_data(conn: sqlite3.Connection) -> None:
-    # Violation 1: NULL stored in NOT NULL column (email)
+    # V1: NULL in NOT NULL column
     conn.execute("INSERT INTO customers VALUES (1, 'alice@example.com', '2024-01-15')")
     conn.execute("INSERT INTO customers VALUES (2, NULL, '2024-02-20')")
     conn.execute("INSERT INTO customers VALUES (3, 'charlie@example.com', '2024-03-10')")
 
-    # Violation 2: FK violation — customer_id 999 does not exist in customers
+    # V2: FK referential integrity — customer 999 does not exist
     conn.execute("INSERT INTO orders VALUES (101, 1,   250.00,            'completed')")
     conn.execute("INSERT INTO orders VALUES (102, 999, 75.50,             'pending')")
     conn.execute("INSERT INTO orders VALUES (103, 2,   120.00,            'completed')")
 
-    # Violation 3: Wrong data type stored in REAL column (string where numeric expected)
+    # V3: Wrong data type (TEXT in REAL column)
     conn.execute("INSERT INTO orders VALUES (104, 3, 'REFUND_PENDING', 'refunded')")
 
-    # Violations 4, 5, 6: FK null — orders with no customer association
+    # V4, V5, V6: FK null — orders with no customer association
     conn.execute("INSERT INTO orders VALUES (105, NULL, 45.00,  'pending')")
     conn.execute("INSERT INTO orders VALUES (106, NULL, 89.99,  'completed')")
     conn.execute("INSERT INTO orders VALUES (107, NULL, 210.50, 'pending')")
 
-    # Violation 7: Duplicate event_id in raw_events (no PK to prevent this)
+    # V7: Duplicate event_id (no PK to prevent this)
     payload = '{"event_type": "PROMPT_SENT", "session_id": "sess_abc"}'
     conn.execute(
         "INSERT INTO raw_events VALUES (?, ?, ?, ?)",
@@ -67,7 +101,7 @@ def seed_dirty_data(conn: sqlite3.Connection) -> None:
         ("evt_001", "kafka_consumer_retry", payload, "2024-04-01T10:00:01Z"),
     )
 
-    # Violation 8: Malformed JSON in payload column
+    # V8: Malformed JSON payload
     conn.execute(
         "INSERT INTO raw_events VALUES"
         " ('evt_002', 'kafka_consumer', '{broken json: missing quotes}', '2024-04-01T10:01:00Z')"

@@ -1,0 +1,15 @@
+[2024-04-15 09:00:00] INFO  scenario=silent_pipeline run_id=run_001 started
+[2024-04-15 09:00:01] INFO  producer: connecting to kafka:9092
+[2024-04-15 09:00:02] INFO  producer: connected. publishing 1000 events to orchid.sandbox.agent.responses
+[2024-04-15 09:00:08] INFO  producer: 1000 events published. flush complete.
+[2024-04-15 09:00:08] INFO  consumer: connecting to kafka:9092 group=orchid-evaluator-ingest
+[2024-04-15 09:00:09] INFO  consumer: subscribed to [orchid.sandbox.agent_response]
+[2024-04-15 09:00:09] INFO  consumer: polling for messages (timeout=10s)...
+[2024-04-15 09:00:19] INFO  consumer: 0 messages received.
+[2024-04-15 09:00:29] INFO  consumer: 0 messages received.
+[2024-04-15 09:00:39] INFO  consumer: 0 messages received.
+[2024-04-15 09:00:39] INFO  qdrant_ingest: starting ingest for 0 events
+[2024-04-15 09:00:39] INFO  qdrant_ingest: 0 points upserted to orchid_interactions
+[2024-04-15 09:00:39] INFO  airflow: triggering DAG orchid_etl
+[2024-04-15 09:00:40] ERROR airflow: DAG orchid_etl failed to load — check import errors
+[2024-04-15 09:00:40] INFO  run complete. events_published=1000 events_indexed=0 events_in_correct_topic=0

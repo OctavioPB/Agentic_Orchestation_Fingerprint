@@ -15,21 +15,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Symlink so `python` resolves to python3 (Ubuntu only ships python3)
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 
-# Install Python workspace dependencies
+# Install Python workspace dependencies (shared across scenarios)
 COPY workspace/requirements.txt /tmp/workspace-requirements.txt
 RUN pip3 install --no-cache-dir -r /tmp/workspace-requirements.txt
 
-# Seed the workspace with scenario files
-COPY workspace/ /home/coder/project/
+# Stage both scenario workspaces into /opt/orchid — not yet in project dir.
+# docker-entrypoint.sh copies the correct one at runtime based on SCENARIO_ID.
+RUN mkdir -p /opt/orchid/workspace_v1 /opt/orchid/workspace_v2 /home/coder/project
 
-# Pre-generate the dirty warehouse database so it's baked into the image.
-# On first container start with an empty named volume, Docker copies image
-# content (including dirty_warehouse.db) into the volume automatically.
-RUN cd /home/coder/project && python3 seed_db.py
+COPY workspace/    /opt/orchid/workspace_v1/
+COPY workspace_v2/ /opt/orchid/workspace_v2/
 
-# Fix ownership after root operations
-RUN chown -R coder:coder /home/coder/project
+COPY docker-entrypoint.sh /usr/local/bin/orchid-entrypoint.sh
+RUN chmod +x /usr/local/bin/orchid-entrypoint.sh
 
-USER coder
+# Default scenario — overridden at `docker run` time via -e SCENARIO_ID=...
+ENV SCENARIO_ID=scenario_corrupted_warehouse_v1
 
 EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/bin/orchid-entrypoint.sh"]
