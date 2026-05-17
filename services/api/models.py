@@ -96,3 +96,44 @@ class FingerprintResponse(BaseModel):
     benchmark_delta: float | None = None
     report_markdown: str = ""
     assembled_at: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Admin / synthetic data
+# ---------------------------------------------------------------------------
+
+
+class TenantSummary(BaseModel):
+    tenant_id: str
+    session_count: int
+    candidate_count: int
+
+
+class SeedRequest(BaseModel):
+    tenant_count: int = Field(default=3, ge=1, le=10)
+    sessions_per_tenant: int = Field(default=2, ge=1, le=10)
+
+
+class SeedResponse(BaseModel):
+    tenants_created: int
+    sessions_created: int
+    fingerprints_created: int
+    tenant_ids: list[str]
+
+
+# ---------------------------------------------------------------------------
+# Cost tracking
+# ---------------------------------------------------------------------------
+
+
+class ModelCost(BaseModel):
+    model: str
+    tokens: int
+    cost_usd: float
+
+
+class CostResponse(BaseModel):
+    session_id: str
+    total_tokens: int
+    estimated_cost_usd: float
+    breakdown: list[ModelCost]

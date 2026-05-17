@@ -135,3 +135,70 @@ export async function getFingerprint(
 export async function getScenarios(token: string, tenantId: string): Promise<Scenario[]> {
   return apiFetch('/scenarios', z.array(ScenarioSchema), token, tenantId);
 }
+
+// ---------------------------------------------------------------------------
+// Admin API (X-Admin-Key auth, no tenant JWT required)
+// ---------------------------------------------------------------------------
+
+export const TenantSummarySchema = z.object({
+  tenant_id: z.string(),
+  session_count: z.number(),
+  candidate_count: z.number(),
+});
+export type TenantSummary = z.infer<typeof TenantSummarySchema>;
+
+export const SeedResponseSchema = z.object({
+  tenants_created: z.number(),
+  sessions_created: z.number(),
+  fingerprints_created: z.number(),
+  tenant_ids: z.array(z.string()),
+});
+export type SeedResponse = z.infer<typeof SeedResponseSchema>;
+
+function adminHeaders(adminKey: string): HeadersInit {
+  return { 'X-Admin-Key': adminKey, 'Content-Type': 'application/json' };
+}
+
+async function adminFetch<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  adminKey: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers: { ...adminHeaders(adminKey), ...options.headers },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Admin API ${res.status}: ${text}`);
+  }
+  const json = await res.json();
+  return schema.parse(json);
+}
+
+export async function getAdminTenants(adminKey: string): Promise<TenantSummary[]> {
+  return adminFetch('/admin/tenants', z.array(TenantSummarySchema), adminKey);
+}
+
+export async function seedSyntheticData(
+  adminKey: string,
+  tenantCount: number,
+  sessionsPerTenant: number,
+): Promise<SeedResponse> {
+  return adminFetch('/admin/seed', SeedResponseSchema, adminKey, {
+    method: 'POST',
+    body: JSON.stringify({ tenant_count: tenantCount, sessions_per_tenant: sessionsPerTenant }),
+  });
+}
+
+export async function deleteAdminTenant(adminKey: string, tenantId: string): Promise<void> {
+  const res = await fetch(`${BASE}/admin/tenants/${encodeURIComponent(tenantId)}`, {
+    method: 'DELETE',
+    headers: adminHeaders(adminKey),
+  });
+  if (!res.ok && res.status !== 204) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Admin API ${res.status}: ${text}`);
+  }
+}

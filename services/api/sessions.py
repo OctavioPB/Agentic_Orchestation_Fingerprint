@@ -216,12 +216,13 @@ async def get_session_fingerprint(
 
     Returns 404 if the fingerprint has not yet been assembled by the Airflow DAG.
     Tenant isolation is enforced via the session record's tenant_id.
+    Responses are cached in-process for 1 hour.
     """
+    from services.api.cache import fingerprint_cache
     from services.api.fingerprint_repository import get_fingerprint
 
     record = state.session_manager.get(session_id)
     if record is None:
-        # Also check DB in case the session was loaded from a previous process
         row = await db.execute(
             text("SELECT tenant_id FROM sessions WHERE session_id = :sid"),
             {"sid": session_id},
@@ -233,10 +234,16 @@ async def get_session_fingerprint(
     else:
         tenant_id = record.tenant_id
 
+    cache_key = f"fp:{tenant_id}:{session_id}"
+    cached = fingerprint_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     fingerprint = await get_fingerprint(db, session_id, tenant_id)
     if fingerprint is None:
         raise HTTPException(
             status_code=404,
             detail=f"Fingerprint for session {session_id!r} not yet assembled",
         )
+    fingerprint_cache.set(cache_key, fingerprint)
     return fingerprint

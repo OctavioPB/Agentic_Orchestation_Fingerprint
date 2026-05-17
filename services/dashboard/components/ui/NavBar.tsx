@@ -8,6 +8,7 @@ import { clearToken } from '@/lib/auth';
 const NAV_LINKS = [
   { href: '/sessions', label: 'Sessions' },
   { href: '/sessions/compare', label: 'Compare' },
+  { href: '/admin', label: 'Admin' },
 ];
 
 export default function NavBar() {

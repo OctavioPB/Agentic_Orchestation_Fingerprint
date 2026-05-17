@@ -52,6 +52,60 @@ async def register_candidate(
     )
 
 
+@router.delete("/{candidate_id}", status_code=204)
+async def delete_candidate(
+    candidate_id: str,
+    tenant_id: str = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """GDPR purge: remove candidate and all associated data (sessions, fingerprints).
+
+    Cascades to all stores. Cache entries are evicted immediately.
+    Kafka tombstone events are not emitted here — that requires a separate
+    Airflow DAG (orchid_data_retention) for the streaming layer.
+    """
+    row = await db.execute(
+        text(
+            "SELECT candidate_id FROM candidates"
+            " WHERE candidate_id = :cid AND tenant_id = :tid"
+        ),
+        {"cid": candidate_id, "tid": tenant_id},
+    )
+    if not row.fetchone():
+        raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+
+    sessions_result = await db.execute(
+        text("SELECT session_id FROM sessions WHERE candidate_id = :cid AND tenant_id = :tid"),
+        {"cid": candidate_id, "tid": tenant_id},
+    )
+    session_ids = [r[0] for r in sessions_result.fetchall()]
+
+    from services.api.cache import fingerprint_cache
+
+    for sid in session_ids:
+        fingerprint_cache.delete(f"fp:{tenant_id}:{sid}")
+        await db.execute(
+            text("DELETE FROM fingerprints WHERE session_id = :sid AND tenant_id = :tid"),
+            {"sid": sid, "tid": tenant_id},
+        )
+
+    await db.execute(
+        text("DELETE FROM sessions WHERE candidate_id = :cid AND tenant_id = :tid"),
+        {"cid": candidate_id, "tid": tenant_id},
+    )
+    await db.execute(
+        text("DELETE FROM candidates WHERE candidate_id = :cid AND tenant_id = :tid"),
+        {"cid": candidate_id, "tid": tenant_id},
+    )
+    await db.commit()
+    logger.info(
+        "candidate_purged_gdpr",
+        candidate_id=candidate_id,
+        tenant_id=tenant_id,
+        sessions_purged=len(session_ids),
+    )
+
+
 @router.get("/{candidate_id}", response_model=CandidateResponse)
 async def get_candidate(
     candidate_id: str,

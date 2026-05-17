@@ -15,6 +15,7 @@ import structlog
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from services.api import state
+from services.api.admin import router as admin_router
 from services.api.candidates import router as candidates_router
 from services.api.scenarios import router as scenarios_router
 from services.api.session_manager import SessionState
@@ -76,6 +77,7 @@ app.include_router(sessions_router)
 app.include_router(candidates_router)
 app.include_router(webhooks_router)
 app.include_router(scenarios_router)
+app.include_router(admin_router)
 
 
 # ── WebSocket endpoint ─────────────────────────────────────────────────────────
