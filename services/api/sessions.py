@@ -6,9 +6,11 @@ import os
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api import state
+from services.api.auth import get_current_tenant
 from services.api.dependencies import get_db
 from services.api.models import CreateSessionRequest, EventsResponse, SessionResponse
 from services.api.session_manager import InvalidTransitionError, SessionState
@@ -70,6 +72,37 @@ async def _persist(db: AsyncSession, record) -> None:  # type: ignore[no-untyped
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
+
+
+@router.get("", response_model=list[SessionResponse])
+async def list_sessions(
+    tenant_id: str = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+    limit: int = 50,
+    offset: int = 0,
+) -> list[SessionResponse]:
+    """List all sessions for the calling tenant, newest first."""
+    result = await db.execute(
+        text(
+            "SELECT session_id, candidate_id, scenario_id, tenant_id, state, started_at, ended_at"
+            " FROM sessions WHERE tenant_id = :tid"
+            " ORDER BY started_at DESC LIMIT :limit OFFSET :offset"
+        ),
+        {"tid": tenant_id, "limit": limit, "offset": offset},
+    )
+    rows = result.fetchall()
+    return [
+        SessionResponse(
+            session_id=r[0],
+            candidate_id=r[1],
+            scenario_id=r[2],
+            tenant_id=r[3],
+            state=r[4],
+            started_at=r[5].isoformat() if hasattr(r[5], "isoformat") else r[5],
+            ended_at=r[6].isoformat() if r[6] and hasattr(r[6], "isoformat") else r[6],
+        )
+        for r in rows
+    ]
 
 
 @router.post("", response_model=SessionResponse, status_code=201)
@@ -172,3 +205,38 @@ async def get_session_events(
         offset=offset,
         limit=limit,
     )
+
+
+@router.get("/{session_id}/fingerprint")
+async def get_session_fingerprint(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:  # type: ignore[type-arg]
+    """Return the assembled OrchestraFingerprint for a session.
+
+    Returns 404 if the fingerprint has not yet been assembled by the Airflow DAG.
+    Tenant isolation is enforced via the session record's tenant_id.
+    """
+    from services.api.fingerprint_repository import get_fingerprint
+
+    record = state.session_manager.get(session_id)
+    if record is None:
+        # Also check DB in case the session was loaded from a previous process
+        row = await db.execute(
+            text("SELECT tenant_id FROM sessions WHERE session_id = :sid"),
+            {"sid": session_id},
+        )
+        db_record = row.fetchone()
+        if not db_record:
+            raise HTTPException(status_code=404, detail=f"Session {session_id!r} not found")
+        tenant_id: str = db_record[0]
+    else:
+        tenant_id = record.tenant_id
+
+    fingerprint = await get_fingerprint(db, session_id, tenant_id)
+    if fingerprint is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Fingerprint for session {session_id!r} not yet assembled",
+        )
+    return fingerprint

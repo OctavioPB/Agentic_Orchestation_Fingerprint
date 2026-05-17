@@ -1,7 +1,7 @@
 """SQLAlchemy async engine and session factory.
 
 Uses asyncpg driver. Connection URL is read from TENANT_DB_URL env var.
-Call init_db() once at application startup to create the sessions table.
+Call init_db() once at application startup to create all tables.
 """
 from __future__ import annotations
 
@@ -32,8 +32,55 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 """
 
+_DDL_CANDIDATES = """
+CREATE TABLE IF NOT EXISTS candidates (
+    candidate_id TEXT        PRIMARY KEY,
+    tenant_id    TEXT        NOT NULL,
+    email        TEXT,
+    name         TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+"""
+
+_DDL_API_KEYS = """
+CREATE TABLE IF NOT EXISTS api_keys (
+    key_id     TEXT PRIMARY KEY,
+    tenant_id  TEXT NOT NULL,
+    key_hash   TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+"""
+
+_DDL_WEBHOOKS = """
+CREATE TABLE IF NOT EXISTS webhooks (
+    webhook_id TEXT        PRIMARY KEY,
+    tenant_id  TEXT        NOT NULL,
+    url        TEXT        NOT NULL,
+    active     BOOLEAN     NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+"""
+
+_DDL_FINGERPRINTS = """
+CREATE TABLE IF NOT EXISTS fingerprints (
+    session_id   TEXT        PRIMARY KEY,
+    tenant_id    TEXT        NOT NULL,
+    fingerprint  TEXT        NOT NULL,
+    assembled_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+"""
+
+_ALL_DDL = [
+    _DDL_SESSIONS,
+    _DDL_CANDIDATES,
+    _DDL_API_KEYS,
+    _DDL_WEBHOOKS,
+    _DDL_FINGERPRINTS,
+]
+
 
 async def init_db() -> None:
-    """Create tables if they don't exist. Idempotent — safe to call on every startup."""
+    """Create all tables if they don't exist. Idempotent — safe to call on every startup."""
     async with engine.begin() as conn:
-        await conn.execute(text(_DDL_SESSIONS))
+        for ddl in _ALL_DDL:
+            await conn.execute(text(ddl))

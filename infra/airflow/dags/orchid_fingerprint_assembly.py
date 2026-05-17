@@ -92,8 +92,44 @@ def orchid_fingerprint_assembly() -> None:
             "style_cluster": fingerprint.style_cluster,
         }
 
+    @task
+    def persist_to_postgres(fingerprint_dict: dict) -> None:
+        """Save the assembled fingerprint to Postgres for API retrieval and webhook delivery."""
+        import asyncio
+
+        from sqlalchemy import text
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+        from services.api.fingerprint_repository import save_fingerprint
+        from services.api.webhooks import deliver_fingerprint
+
+        db_url = os.environ.get(
+            "TENANT_DB_URL",
+            "postgresql+asyncpg://orchid:orchid@localhost:5432/orchid",
+        )
+        engine = create_async_engine(db_url, pool_pre_ping=True)
+        session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+        session_id: str = fingerprint_dict["session_id"]
+
+        async def _run() -> None:
+            async with session_factory() as db:
+                # Resolve tenant from sessions table
+                row = await db.execute(
+                    text("SELECT tenant_id FROM sessions WHERE session_id = :sid"),
+                    {"sid": session_id},
+                )
+                record = row.fetchone()
+                tenant_id: str = record[0] if record else "default"
+                await save_fingerprint(db, session_id, tenant_id, fingerprint_dict)
+                await deliver_fingerprint(fingerprint_dict, db)
+            await engine.dispose()
+
+        asyncio.run(_run())
+
     fingerprint_dict = assemble()
     persist_to_neo4j(fingerprint_dict)
+    persist_to_postgres(fingerprint_dict)
 
 
 orchid_fingerprint_assembly()

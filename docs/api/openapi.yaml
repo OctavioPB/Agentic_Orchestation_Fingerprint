@@ -1,0 +1,384 @@
+openapi: 3.1.0
+info:
+  title: orchid API
+  version: 0.1.0
+  description: |
+    The orchid multi-tenant REST API for engineering leadership assessment.
+    Hiring platforms integrate via JWT-authenticated endpoints to provision
+    sessions, retrieve orchestration fingerprints, and receive webhook
+    notifications on fingerprint assembly.
+
+servers:
+  - url: https://api.orchid.example.com
+    description: Production
+  - url: http://localhost:8000
+    description: Local development
+
+security:
+  - BearerAuth: []
+  - TenantHeader: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    TenantHeader:
+      type: apiKey
+      in: header
+      name: X-Tenant-ID
+
+  schemas:
+    CandidateRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          nullable: true
+        name:
+          type: string
+          nullable: true
+
+    CandidateResponse:
+      type: object
+      required: [candidate_id, tenant_id, created_at]
+      properties:
+        candidate_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+        email:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateSessionRequest:
+      type: object
+      required: [candidate_id, scenario_id]
+      properties:
+        candidate_id:
+          type: string
+        scenario_id:
+          type: string
+        tenant_id:
+          type: string
+          default: default
+
+    SessionResponse:
+      type: object
+      required: [session_id, candidate_id, scenario_id, tenant_id, state, started_at]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        candidate_id:
+          type: string
+        scenario_id:
+          type: string
+        tenant_id:
+          type: string
+        state:
+          type: string
+          enum: [created, active, completed]
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    FingerprintResponse:
+      type: object
+      required: [session_id, candidate_id, scenario_id, scores, interaction_graph]
+      properties:
+        session_id:
+          type: string
+        candidate_id:
+          type: string
+        scenario_id:
+          type: string
+        scores:
+          type: object
+          properties:
+            efficiency_ratio:
+              type: number
+              minimum: 0
+              maximum: 1
+            trust_calibration:
+              type: number
+              minimum: 0
+              maximum: 1
+            correction_velocity:
+              type: number
+              minimum: 0
+              maximum: 1
+            decomposition_score:
+              type: number
+              minimum: 0
+              maximum: 1
+            chaos_resilience:
+              type: number
+              minimum: 0
+              maximum: 1
+        style_cluster:
+          type: string
+          enum: [architect, executor, debugger, delegator]
+          nullable: true
+        reasoning_trace:
+          type: array
+          items:
+            type: string
+        interaction_graph:
+          type: object
+        benchmark_delta:
+          type: number
+          nullable: true
+        report_markdown:
+          type: string
+        assembled_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    WebhookRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+
+    WebhookResponse:
+      type: object
+      required: [webhook_id, tenant_id, url, active, created_at]
+      properties:
+        webhook_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+        url:
+          type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    ScenarioSummary:
+      type: object
+      required: [scenario_id, name]
+      properties:
+        scenario_id:
+          type: string
+        name:
+          type: string
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+          default: medium
+        description:
+          type: string
+        chaos_component:
+          type: string
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+
+paths:
+  /candidates:
+    post:
+      summary: Register a candidate
+      operationId: registerCandidate
+      tags: [candidates]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateRequest'
+            example:
+              email: alice@example.com
+              name: Alice Chen
+      responses:
+        '201':
+          description: Candidate registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+
+  /candidates/{candidate_id}:
+    get:
+      summary: Get a candidate
+      operationId: getCandidate
+      tags: [candidates]
+      parameters:
+        - name: candidate_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Candidate found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateResponse'
+        '404':
+          description: Candidate not found
+
+  /sessions:
+    get:
+      summary: List sessions for the calling tenant
+      operationId: listSessions
+      tags: [sessions]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Session list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SessionResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+    post:
+      summary: Create a session
+      operationId: createSession
+      tags: [sessions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+            example:
+              candidate_id: 550e8400-e29b-41d4-a716-446655440000
+              scenario_id: corrupted_warehouse_v1
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+
+  /sessions/{session_id}:
+    get:
+      summary: Get session status
+      operationId: getSession
+      tags: [sessions]
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '404':
+          description: Session not found
+
+  /sessions/{session_id}/fingerprint:
+    get:
+      summary: Get assembled fingerprint
+      operationId: getFingerprint
+      tags: [sessions]
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Fingerprint assembled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FingerprintResponse'
+        '404':
+          description: Session not found or fingerprint not yet assembled
+
+  /webhooks:
+    post:
+      summary: Register a webhook
+      operationId: registerWebhook
+      tags: [webhooks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookRequest'
+            example:
+              url: https://ats.example.com/orchid/fingerprint
+      responses:
+        '201':
+          description: Webhook registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+
+  /scenarios:
+    get:
+      summary: List available scenarios
+      operationId: listScenarios
+      tags: [scenarios]
+      responses:
+        '200':
+          description: Scenario catalogue
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScenarioSummary'

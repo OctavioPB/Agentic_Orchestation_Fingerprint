@@ -1,7 +1,7 @@
 """Pydantic request/response schemas for the orchid REST API."""
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class CreateSessionRequest(BaseModel):
@@ -30,3 +30,69 @@ class EventsResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+# ---------------------------------------------------------------------------
+# Candidates
+# ---------------------------------------------------------------------------
+
+
+class CandidateRequest(BaseModel):
+    email: str | None = None
+    name: str | None = None
+
+
+class CandidateResponse(BaseModel):
+    candidate_id: str
+    tenant_id: str
+    email: str | None = None
+    name: str | None = None
+    created_at: str
+
+
+# ---------------------------------------------------------------------------
+# Webhooks
+# ---------------------------------------------------------------------------
+
+
+class WebhookRequest(BaseModel):
+    url: HttpUrl
+
+
+class WebhookResponse(BaseModel):
+    webhook_id: str
+    tenant_id: str
+    url: str
+    active: bool
+    created_at: str
+
+
+# ---------------------------------------------------------------------------
+# Scenarios
+# ---------------------------------------------------------------------------
+
+
+class ScenarioSummary(BaseModel):
+    scenario_id: str
+    name: str
+    difficulty: str = "medium"
+    description: str = ""
+    chaos_component: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Fingerprint (passthrough of OrchestraFingerprint fields)
+# ---------------------------------------------------------------------------
+
+
+class FingerprintResponse(BaseModel):
+    session_id: str
+    candidate_id: str
+    scenario_id: str
+    scores: dict  # type: ignore[type-arg]  # ScoreSet fields
+    style_cluster: str | None = None
+    reasoning_trace: list[str] = Field(default_factory=list)
+    interaction_graph: dict  # type: ignore[type-arg]  # nodes + edges
+    benchmark_delta: float | None = None
+    report_markdown: str = ""
+    assembled_at: str | None = None

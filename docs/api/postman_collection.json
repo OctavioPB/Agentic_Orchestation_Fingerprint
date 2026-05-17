@@ -1,0 +1,222 @@
+{
+  "info": {
+    "name": "orchid API",
+    "description": "Multi-tenant REST API for engineering leadership assessment. All requests require Authorization: Bearer <JWT> and X-Tenant-ID headers.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "0.1.0"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "tenant_id", "value": "acme-corp", "type": "string" },
+    { "key": "jwt_token", "value": "<insert JWT here>", "type": "string" },
+    { "key": "candidate_id", "value": "", "type": "string" },
+    { "key": "session_id", "value": "", "type": "string" },
+    { "key": "webhook_id", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Candidates",
+      "item": [
+        {
+          "name": "Register candidate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json();",
+                  "pm.test('Has candidate_id', () => pm.expect(data.candidate_id).to.be.a('string'));",
+                  "pm.collectionVariables.set('candidate_id', data.candidate_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Tenant-ID", "value": "{{tenant_id}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/candidates", "host": ["{{base_url}}"], "path": ["candidates"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"name\": \"Alice Chen\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get candidate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "pm.test('Tenant isolation', () => pm.expect(data.tenant_id).to.eql(pm.collectionVariables.get('tenant_id')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Tenant-ID", "value": "{{tenant_id}}" }],
+            "url": {
+              "raw": "{{base_url}}/candidates/{{candidate_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["candidates", "{{candidate_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Create session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json();",
+                  "pm.test('State is active', () => pm.expect(data.state).to.eql('active'));",
+                  "pm.collectionVariables.set('session_id', data.session_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Tenant-ID", "value": "{{tenant_id}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/sessions", "host": ["{{base_url}}"], "path": ["sessions"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"candidate_id\": \"{{candidate_id}}\",\n  \"scenario_id\": \"corrupted_warehouse_v1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get session status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "pm.test('Has session_id', () => pm.expect(data.session_id).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Tenant-ID", "value": "{{tenant_id}}" }],
+            "url": {
+              "raw": "{{base_url}}/sessions/{{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["sessions", "{{session_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get session fingerprint",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 or 404', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.test('Has scores', () => pm.expect(data.scores).to.be.an('object'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Tenant-ID", "value": "{{tenant_id}}" }],
+            "url": {
+              "raw": "{{base_url}}/sessions/{{session_id}}/fingerprint",
+              "host": ["{{base_url}}"],
+              "path": ["sessions", "{{session_id}}", "fingerprint"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Register webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json();",
+                  "pm.test('Active by default', () => pm.expect(data.active).to.be.true);",
+                  "pm.collectionVariables.set('webhook_id', data.webhook_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Tenant-ID", "value": "{{tenant_id}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/webhooks", "host": ["{{base_url}}"], "path": ["webhooks"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://your-ats.example.com/orchid/fingerprint\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scenarios",
+      "item": [
+        {
+          "name": "List scenarios",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "pm.test('Returns array', () => pm.expect(data).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Tenant-ID", "value": "{{tenant_id}}" }],
+            "url": { "raw": "{{base_url}}/scenarios", "host": ["{{base_url}}"], "path": ["scenarios"] }
+          }
+        }
+      ]
+    }
+  ]
+}
