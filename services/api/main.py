@@ -13,10 +13,12 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 
 from services.api import state
 from services.api.admin import router as admin_router
 from services.api.candidates import router as candidates_router
+from services.api.demo import router as demo_router
 from services.api.scenarios import router as scenarios_router
 from services.api.session_manager import SessionState
 from services.api.sessions import router as sessions_router
@@ -73,6 +75,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 # ── App ────────────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="orchid API", version="0.1.0", lifespan=lifespan)
+
+_CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000",
+).split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(demo_router)
 app.include_router(sessions_router)
 app.include_router(candidates_router)
 app.include_router(webhooks_router)

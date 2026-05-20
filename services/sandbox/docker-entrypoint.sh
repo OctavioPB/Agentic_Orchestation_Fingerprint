@@ -29,4 +29,4 @@ esac
 chown -R coder:coder "${PROJECT_DIR}"
 
 echo "[entrypoint] workspace ready — handing off to code-server"
-exec sudo --user=coder /usr/bin/entrypoint.sh "$@"
+exec sudo -EH --user=coder /usr/bin/entrypoint.sh "$@"

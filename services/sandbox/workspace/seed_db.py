@@ -1,4 +1,5 @@
 """Creates dirty_warehouse.db with intentional data quality violations for the assessment."""
+import os
 import sqlite3
 
 DB_PATH = "dirty_warehouse.db"
@@ -9,7 +10,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS customers (
             customer_id INTEGER PRIMARY KEY,
-            email       TEXT NOT NULL,
+            email       TEXT,          -- Violation: should be NOT NULL per data contract
             signup_date TEXT
         );
 
@@ -78,6 +79,8 @@ def seed_dirty_data(conn: sqlite3.Connection) -> None:
 
 
 def main() -> None:
+    if os.path.exists(DB_PATH):
+        os.remove(DB_PATH)
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA foreign_keys = OFF")
     create_schema(conn)

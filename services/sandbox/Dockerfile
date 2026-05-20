@@ -15,9 +15,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Symlink so `python` resolves to python3 (Ubuntu only ships python3)
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 
-# Install Python workspace dependencies (shared across scenarios)
+# Install Python workspace dependencies into a venv.
+# Debian Bookworm enforces PEP 668 (externally-managed-environment),
+# so system-wide pip3 installs are blocked. A venv avoids that constraint
+# without needing --break-system-packages.
 COPY workspace/requirements.txt /tmp/workspace-requirements.txt
-RUN pip3 install --no-cache-dir -r /tmp/workspace-requirements.txt
+RUN python3 -m venv /opt/orchid/venv \
+    && /opt/orchid/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/orchid/venv/bin/pip install --no-cache-dir -r /tmp/workspace-requirements.txt
+
+# Make venv python the default for all subsequent RUN steps and at runtime
+ENV PATH="/opt/orchid/venv/bin:$PATH"
 
 # Stage both scenario workspaces into /opt/orchid — not yet in project dir.
 # docker-entrypoint.sh copies the correct one at runtime based on SCENARIO_ID.

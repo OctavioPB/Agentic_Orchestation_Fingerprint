@@ -137,6 +137,26 @@ export async function getScenarios(token: string, tenantId: string): Promise<Sce
 }
 
 // ---------------------------------------------------------------------------
+// Demo auth (no authentication required)
+// ---------------------------------------------------------------------------
+
+export const DemoTokenSchema = z.object({
+  token: z.string(),
+  tenant_id: z.string(),
+  seeded: z.boolean(),
+});
+export type DemoToken = z.infer<typeof DemoTokenSchema>;
+
+export async function getDemoToken(): Promise<DemoToken> {
+  const res = await fetch(`${BASE}/auth/demo-token`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Demo token error ${res.status}: ${text}`);
+  }
+  return DemoTokenSchema.parse(await res.json());
+}
+
+// ---------------------------------------------------------------------------
 // Admin API (X-Admin-Key auth, no tenant JWT required)
 // ---------------------------------------------------------------------------
 

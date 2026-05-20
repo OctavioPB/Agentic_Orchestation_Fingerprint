@@ -183,14 +183,9 @@ export default function FingerprintPage() {
 
       {/* Charts */}
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 48px' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-            gap: 24,
-          }}
-        >
-          {/* ScoreRadar */}
+
+        {/* Row 1: ScoreRadar + EfficiencyGauge */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
           <div
             style={{
               background: '#fff',
@@ -214,7 +209,6 @@ export default function FingerprintPage() {
             <ScoreRadar scores={fp.scores} benchmarkLevel={benchmarkLevel} />
           </div>
 
-          {/* EfficiencyRatioGauge */}
           <div
             style={{
               background: '#fff',
@@ -240,7 +234,10 @@ export default function FingerprintPage() {
             </h3>
             <EfficiencyRatioGauge score={fp.scores.efficiency_ratio} />
           </div>
+        </div>
 
+        {/* Row 2: InteractionGraph (left) + ReasoningTrace / Assessment stacked (right) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           {/* InteractionGraph */}
           <div
             style={{
@@ -265,57 +262,69 @@ export default function FingerprintPage() {
             <InteractionGraph graph={fp.interaction_graph} />
           </div>
 
-          {/* ReasoningTrace */}
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: 12,
-              padding: '28px',
-              boxShadow: '0 1px 6px rgba(0,51,102,0.09)',
-            }}
-          >
-            <Eyebrow>Reasoning trace</Eyebrow>
-            <h3
-              style={{
-                fontFamily: 'var(--fb)',
-                fontSize: 16,
-                fontWeight: 600,
-                color: '#0a1628',
-                marginBottom: 20,
-              }}
-            >
-              Reconstructed Thought Tree
-            </h3>
-            <ReasoningTrace trace={fp.reasoning_trace} />
-          </div>
-        </div>
-
-        {/* Report markdown */}
-        {fp.report_markdown && (
-          <div
-            style={{
-              marginTop: 24,
-              background: '#fff',
-              borderRadius: 12,
-              padding: '32px',
-              boxShadow: '0 1px 6px rgba(0,51,102,0.09)',
-              borderLeft: '3px solid var(--gold)',
-            }}
-          >
-            <Eyebrow>Assessment report</Eyebrow>
+          {/* ReasoningTrace + Assessment Report — stacked in the right column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div
               style={{
-                fontFamily: 'var(--fb)',
-                fontSize: 14,
-                color: '#374151',
-                lineHeight: 1.75,
-                whiteSpace: 'pre-wrap',
+                background: '#fff',
+                borderRadius: 12,
+                padding: '28px',
+                boxShadow: '0 1px 6px rgba(0,51,102,0.09)',
               }}
             >
-              {fp.report_markdown}
+              <Eyebrow>Reasoning trace</Eyebrow>
+              <h3
+                style={{
+                  fontFamily: 'var(--fb)',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: '#0a1628',
+                  marginBottom: 20,
+                }}
+              >
+                Reconstructed Thought Tree
+              </h3>
+              <ReasoningTrace trace={fp.reasoning_trace} />
             </div>
+
+            {fp.report_markdown && (
+              <div
+                style={{
+                  background: '#fff',
+                  borderRadius: 12,
+                  padding: '28px',
+                  boxShadow: '0 1px 6px rgba(0,51,102,0.09)',
+                  borderLeft: '3px solid var(--gold)',
+                  flex: 1,
+                }}
+              >
+                <Eyebrow>Assessment report</Eyebrow>
+                <h3
+                  style={{
+                    fontFamily: 'var(--fb)',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: '#0a1628',
+                    marginBottom: 20,
+                  }}
+                >
+                  Leadership Narrative
+                </h3>
+                <div
+                  style={{
+                    fontFamily: 'var(--fb)',
+                    fontSize: 14,
+                    color: '#374151',
+                    lineHeight: 1.75,
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {fp.report_markdown}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </section>
     </>
   );

@@ -1,5 +1,3 @@
-version: "3.9"
-
 # Shared config for all Airflow services — DO NOT add depends_on here (merge semantics)
 x-airflow-common: &airflow-common
   image: apache/airflow:2.8.0-python3.11
@@ -30,10 +28,13 @@ services:
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      # `srvr` is enabled by default in cp-zookeeper; nc is present in the image.
+      # We grep for "Zookeeper version" in the srvr response to confirm it's serving.
+      test: ["CMD-SHELL", "echo srvr | nc -w 2 127.0.0.1 2181 2>&1 | grep -q 'Zookeeper version'"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 15
+      start_period: 30s
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -112,10 +113,11 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333 && printf 'GET /healthz HTTP/1.0\\r\\n\\r\\n' >&3 && cat <&3 | grep -q 'passed'"]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 20s
 
   neo4j:
     image: neo4j:5.18.0-community
@@ -127,7 +129,7 @@ services:
     volumes:
       - neo4j_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:7474 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 | grep -q 'neo4j'"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -145,6 +147,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init-orchid.sql:/docker-entrypoint-initdb.d/init-orchid.sql:ro
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s

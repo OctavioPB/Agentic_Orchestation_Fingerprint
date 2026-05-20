@@ -4,12 +4,27 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setToken, decodeTenantId } from '@/lib/auth';
+import { getDemoToken } from '@/services/api';
 
 export default function LoginPage() {
   const router = useRouter();
   const [token, setTokenInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  async function handleDemoAccess() {
+    setDemoLoading(true);
+    setError('');
+    try {
+      const { token: demoToken } = await getDemoToken();
+      setToken(demoToken);
+      router.push('/sessions');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Demo access failed — is the API running?');
+      setDemoLoading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -109,6 +124,39 @@ export default function LoginPage() {
         >
           Paste your tenant JWT to access the Cognitive Blueprint.
         </p>
+
+        {/* Demo access */}
+        <button
+          type="button"
+          onClick={handleDemoAccess}
+          disabled={demoLoading || loading}
+          style={{
+            width: '100%',
+            padding: '13px',
+            background: demoLoading ? '#b8a060' : 'var(--gold)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            fontFamily: 'var(--fb)',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '3px',
+            textTransform: 'uppercase',
+            cursor: demoLoading ? 'not-allowed' : 'pointer',
+            marginBottom: 24,
+            transition: 'background 0.15s',
+          }}
+        >
+          {demoLoading ? 'Loading Demo…' : 'Demo Access →'}
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <div style={{ flex: 1, height: 1, background: '#E0EAF4' }} />
+          <span style={{ fontFamily: 'var(--fb)', fontSize: 10, color: '#9CAFC4', letterSpacing: '2px', textTransform: 'uppercase' }}>
+            or paste token
+          </span>
+          <div style={{ flex: 1, height: 1, background: '#E0EAF4' }} />
+        </div>
 
         <form onSubmit={handleSubmit}>
           <label
