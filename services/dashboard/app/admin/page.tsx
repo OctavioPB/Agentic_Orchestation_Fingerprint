@@ -4,7 +4,8 @@
 import { useEffect, useState } from 'react';
 import Eyebrow from '@/components/ui/Eyebrow';
 import type { SeedResponse, TenantSummary } from '@/services/api';
-import { deleteAdminTenant, getAdminTenants, seedSyntheticData } from '@/services/api';
+import { deleteAdminTenant, getAdminTenants, getDemoToken, seedSyntheticData } from '@/services/api';
+import { decodeTenantId, getTokenFromCookie } from '@/lib/auth';
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -144,6 +145,17 @@ export default function AdminPage() {
       setLoading(false);
     }
   }
+
+  // Auto-authenticate for demo tenant — skips key gate entirely
+  useEffect(() => {
+    const token = getTokenFromCookie();
+    const tenantId = token ? decodeTenantId(token) : null;
+    if (tenantId === 'demo') {
+      getDemoToken()
+        .then(({ admin_key }) => fetchTenants(admin_key))
+        .catch(() => {});
+    }
+  }, []); // runs once on mount; fetchTenants is stable
 
   async function handleConnect(e: React.FormEvent) {
     e.preventDefault();

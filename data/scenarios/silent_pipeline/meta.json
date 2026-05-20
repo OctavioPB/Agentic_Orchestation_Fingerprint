@@ -1,0 +1,37 @@
+{
+  "scenario_id": "scenario_silent_pipeline_v1",
+  "name": "The Silent Pipeline",
+  "version": "v1",
+  "difficulty": "hard",
+  "description": "An event processing pipeline runs without errors yet produces no output. Three silent failures across Kafka, Qdrant, and Airflow must be traced and fixed. No exceptions surface — the candidate must reason from end-to-end absence of data rather than from error messages.",
+  "chaos_component": "CORRUPT_SCHEMA",
+  "chaos_trigger_min": 20,
+  "max_duration_min": 60,
+  "violations_count": 3,
+  "expected_resolution_steps": 8,
+  "ai_solo_steps": 19,
+  "ai_solo_duration_sec": 2341,
+  "ai_solo_violations_found": 2,
+  "scoring_signals": [
+    {
+      "dimension": "decomposition_score",
+      "signal": "Does the candidate check all three pipeline layers (Kafka, Qdrant, Airflow) systematically rather than fixating on one component?"
+    },
+    {
+      "dimension": "trust_calibration",
+      "signal": "Does the candidate verify DELTA's topic name suggestion before applying it to the producer config?"
+    },
+    {
+      "dimension": "correction_velocity",
+      "signal": "NOVA asks three clarifying questions before diagnosing. How quickly does the candidate redirect NOVA toward the root cause?"
+    },
+    {
+      "dimension": "chaos_resilience",
+      "signal": "Time from CORRUPT_SCHEMA to Qdrant payload corrected and ingest re-running end-to-end."
+    },
+    {
+      "dimension": "efficiency_ratio",
+      "signal": "Steps taken versus AI-solo baseline of 19 steps and 2,341 seconds (with 2 of 3 violations fixed)."
+    }
+  ]
+}

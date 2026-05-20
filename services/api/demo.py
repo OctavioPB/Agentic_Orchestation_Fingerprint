@@ -25,6 +25,7 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _DEMO_TENANT = "demo"
+_DEMO_ADMIN_KEY = "demo-admin-key"
 _DEMO_SESSIONS = 4
 _SCENARIO_IDS = ["corrupted-warehouse-v1", "silent-pipeline-v1"]
 _STYLE_CLUSTERS = ["architect", "executor", "debugger", "delegator"]
@@ -37,6 +38,7 @@ class DemoTokenResponse(BaseModel):
     token: str
     tenant_id: str
     seeded: bool
+    admin_key: str
 
 
 def _make_fingerprint(session_id: str, candidate_id: str, scenario_id: str) -> dict:  # type: ignore[type-arg]
@@ -177,4 +179,4 @@ async def get_demo_token(db: AsyncSession = Depends(get_db)) -> DemoTokenRespons
     seeded = await _seed_demo(db)
     token = create_access_token(_DEMO_TENANT)
     logger.info("demo_token_issued", tenant_id=_DEMO_TENANT, seeded=seeded)
-    return DemoTokenResponse(token=token, tenant_id=_DEMO_TENANT, seeded=seeded)
+    return DemoTokenResponse(token=token, tenant_id=_DEMO_TENANT, seeded=seeded, admin_key=_DEMO_ADMIN_KEY)

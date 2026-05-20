@@ -65,15 +65,30 @@ export const SessionSchema = z.object({
   state: z.enum(['created', 'active', 'completed']),
   started_at: z.string(),
   ended_at: z.string().nullable().optional(),
+  candidate_name: z.string().nullable().optional(),
 });
 export type Session = z.infer<typeof SessionSchema>;
+
+export const ScoringSignalSchema = z.object({
+  dimension: z.string(),
+  signal: z.string(),
+});
 
 export const ScenarioSchema = z.object({
   scenario_id: z.string(),
   name: z.string(),
+  version: z.string().default('v1'),
   difficulty: z.string().default('medium'),
   description: z.string().default(''),
   chaos_component: z.string().nullable().optional(),
+  chaos_trigger_min: z.number().nullable().optional(),
+  max_duration_min: z.number().nullable().optional(),
+  violations_count: z.number().nullable().optional(),
+  expected_resolution_steps: z.number().nullable().optional(),
+  ai_solo_steps: z.number().nullable().optional(),
+  ai_solo_duration_sec: z.number().nullable().optional(),
+  ai_solo_violations_found: z.number().nullable().optional(),
+  scoring_signals: z.array(ScoringSignalSchema).default([]),
 });
 export type Scenario = z.infer<typeof ScenarioSchema>;
 
@@ -144,6 +159,7 @@ export const DemoTokenSchema = z.object({
   token: z.string(),
   tenant_id: z.string(),
   seeded: z.boolean(),
+  admin_key: z.string(),
 });
 export type DemoToken = z.infer<typeof DemoTokenSchema>;
 

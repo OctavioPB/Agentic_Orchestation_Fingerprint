@@ -84,9 +84,12 @@ async def list_sessions(
     """List all sessions for the calling tenant, newest first."""
     result = await db.execute(
         text(
-            "SELECT session_id, candidate_id, scenario_id, tenant_id, state, started_at, ended_at"
-            " FROM sessions WHERE tenant_id = :tid"
-            " ORDER BY started_at DESC LIMIT :limit OFFSET :offset"
+            "SELECT s.session_id, s.candidate_id, s.scenario_id, s.tenant_id, s.state,"
+            " s.started_at, s.ended_at, c.name AS candidate_name"
+            " FROM sessions s"
+            " LEFT JOIN candidates c ON c.candidate_id = s.candidate_id"
+            " WHERE s.tenant_id = :tid"
+            " ORDER BY s.started_at DESC LIMIT :limit OFFSET :offset"
         ),
         {"tid": tenant_id, "limit": limit, "offset": offset},
     )
@@ -100,6 +103,7 @@ async def list_sessions(
             state=r[4],
             started_at=r[5].isoformat() if hasattr(r[5], "isoformat") else r[5],
             ended_at=r[6].isoformat() if r[6] and hasattr(r[6], "isoformat") else r[6],
+            candidate_name=r[7],
         )
         for r in rows
     ]

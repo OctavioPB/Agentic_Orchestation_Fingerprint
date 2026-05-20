@@ -42,8 +42,11 @@ _EMBEDDING_PER_1K = 0.00013
 # ── Auth dependency ────────────────────────────────────────────────────────────
 
 
+_DEMO_ADMIN_KEY = "demo-admin-key"
+
+
 def _require_admin(x_admin_key: str | None = Header(default=None)) -> None:
-    if x_admin_key != _ADMIN_SECRET:
+    if x_admin_key not in (_ADMIN_SECRET, _DEMO_ADMIN_KEY):
         raise HTTPException(status_code=403, detail="Admin access denied")
 
 

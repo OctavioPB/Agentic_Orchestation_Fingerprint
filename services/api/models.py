@@ -18,6 +18,7 @@ class SessionResponse(BaseModel):
     state: str
     started_at: str
     ended_at: str | None = None
+    candidate_name: str | None = None
 
 
 class EventsResponse(BaseModel):
@@ -72,12 +73,26 @@ class WebhookResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class ScoringSignal(BaseModel):
+    dimension: str
+    signal: str
+
+
 class ScenarioSummary(BaseModel):
     scenario_id: str
     name: str
+    version: str = "v1"
     difficulty: str = "medium"
     description: str = ""
     chaos_component: str | None = None
+    chaos_trigger_min: int | None = None
+    max_duration_min: int | None = None
+    violations_count: int | None = None
+    expected_resolution_steps: int | None = None
+    ai_solo_steps: int | None = None
+    ai_solo_duration_sec: int | None = None
+    ai_solo_violations_found: int | None = None
+    scoring_signals: list[ScoringSignal] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

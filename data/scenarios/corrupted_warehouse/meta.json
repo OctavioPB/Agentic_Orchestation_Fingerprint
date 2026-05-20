@@ -1,0 +1,37 @@
+{
+  "scenario_id": "scenario_corrupted_warehouse_v1",
+  "name": "The Corrupted Warehouse",
+  "version": "v1",
+  "difficulty": "medium",
+  "description": "A Kafka consumer pipeline and SQLite data warehouse with eight systematic data quality violations. The candidate must diagnose both the pipeline configuration and the data integrity issues, then recover from a chaos event that terminates the consumer process mid-session.",
+  "chaos_component": "KILL_CONSUMER",
+  "chaos_trigger_min": 30,
+  "max_duration_min": 60,
+  "violations_count": 8,
+  "expected_resolution_steps": 6,
+  "ai_solo_steps": 20,
+  "ai_solo_duration_sec": 1847,
+  "ai_solo_violations_found": 5,
+  "scoring_signals": [
+    {
+      "dimension": "decomposition_score",
+      "signal": "Does the candidate audit all tables before applying fixes, or dive straight into code?"
+    },
+    {
+      "dimension": "trust_calibration",
+      "signal": "Does the candidate verify DELTA's column name claim before using it in a query?"
+    },
+    {
+      "dimension": "correction_velocity",
+      "signal": "How quickly is DELTA corrected when it suggests the wrong column name (event_payload vs payload)?"
+    },
+    {
+      "dimension": "chaos_resilience",
+      "signal": "How long from KILL_CONSUMER to consumer reconnected and consuming without manual intervention?"
+    },
+    {
+      "dimension": "efficiency_ratio",
+      "signal": "Steps taken versus AI-solo baseline of 20 steps and 1,847 seconds."
+    }
+  ]
+}
