@@ -250,6 +250,9 @@ export default function FingerprintPage() {
               5-Dimension Profile
             </h3>
             <ScoreRadar scores={fp.scores} benchmarkLevel={benchmarkLevel} />
+            <p style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--mid)', lineHeight: 1.6, marginTop: 16 }}>
+              Five orchestration dimensions scored 0–100. The dashed polygon marks the senior-engineer benchmark; a larger candidate shape signals stronger leadership.
+            </p>
           </div>
 
           <div
@@ -276,6 +279,9 @@ export default function FingerprintPage() {
               vs AI-solo Baseline
             </h3>
             <EfficiencyRatioGauge score={fp.scores.efficiency_ratio} />
+            <p style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--mid)', lineHeight: 1.6, marginTop: 16, textAlign: 'center' }}>
+              Value-add over an unguided AI run of the same scenario. Scores above 50 % indicate the candidate meaningfully improved on the AI-solo baseline.
+            </p>
           </div>
         </div>
 
@@ -303,6 +309,9 @@ export default function FingerprintPage() {
               Candidate–Agent Network
             </h3>
             <InteractionGraph graph={fp.interaction_graph} />
+            <p style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--mid)', lineHeight: 1.6, marginTop: 16 }}>
+              Nodes are the candidate and three sub-agents. Edge weight reflects message volume; correction counts show how often the candidate overrode an agent response.
+            </p>
           </div>
 
           {/* ReasoningTrace + Assessment Report — stacked in the right column */}
@@ -328,6 +337,9 @@ export default function FingerprintPage() {
                 Reconstructed Thought Tree
               </h3>
               <ReasoningTrace trace={fp.reasoning_trace} />
+              <p style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--mid)', lineHeight: 1.6, marginTop: 16 }}>
+                Key decision moments reconstructed by the Shadow Agent from prompt and correction events, ordered chronologically through the session.
+              </p>
             </div>
 
             {fp.report_markdown && (

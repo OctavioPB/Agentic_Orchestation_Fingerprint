@@ -53,7 +53,7 @@ export default function ScoreRadar({ scores, benchmarkLevel = 0.65 }: Props) {
     <svg
       viewBox="0 0 400 400"
       width="100%"
-      style={{ display: 'block', maxWidth: 420 }}
+      style={{ display: 'block', maxWidth: 300, margin: '0 auto' }}
       role="img"
       aria-label="Score radar chart showing 5 orchestration dimensions"
     >

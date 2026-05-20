@@ -49,7 +49,7 @@ export default function EfficiencyRatioGauge({ score, label = 'Efficiency Ratio'
     <svg
       viewBox="0 0 200 130"
       width="100%"
-      style={{ display: 'block', maxWidth: 280 }}
+      style={{ display: 'block', width: '100%', maxWidth: 380, margin: '0 auto' }}
       role="img"
       aria-label={`${label}: ${pct}% of AI-solo baseline`}
     >
