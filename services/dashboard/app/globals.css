@@ -51,3 +51,57 @@ a {
   background: var(--gold);
   border-radius: 2px 2px 0 0;
 }
+
+/* ── Print / PDF export ───────────────────────────────────────────────────── */
+@media print {
+  /* Hide chrome */
+  nav, footer, [data-no-print] {
+    display: none !important;
+  }
+
+  /* Reset page background */
+  body {
+    background: #fff;
+    font-size: 11pt;
+    color: #1C1C2E;
+  }
+
+  /* Remove shadows / rounded corners that don't print well */
+  * {
+    box-shadow: none !important;
+  }
+
+  /* Hero: white bg, dark text */
+  [data-print-hero] {
+    background: #003366 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    padding: 32px 40px !important;
+    margin-bottom: 24px;
+  }
+
+  /* Force colors to print */
+  [data-print-color] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Charts section: 2-column grid stays intact */
+  section {
+    padding: 16px 24px !important;
+  }
+
+  /* Don't break cards across pages */
+  .card-panel {
+    break-inside: avoid;
+    border: 1px solid #E0EAF4;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 16mm 14mm;
+    size: A4;
+  }
+}

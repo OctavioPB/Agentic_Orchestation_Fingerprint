@@ -134,6 +134,8 @@ export default function FingerprintPage() {
     <>
       {/* Hero */}
       <section
+        data-print-hero
+        data-print-color
         style={{
           background: 'var(--primary)',
           backgroundImage: `
@@ -143,26 +145,67 @@ export default function FingerprintPage() {
           padding: '56px 48px',
         }}
       >
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <h1
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24 }}>
+          <div>
+            <h1
+              style={{
+                fontFamily: "'Fraunces', Georgia, serif",
+                fontSize: 32,
+                fontWeight: 400,
+                color: '#fff',
+                lineHeight: 1.2,
+                marginBottom: 8,
+              }}
+            >
+              Orchestration{' '}
+              <em style={{ fontStyle: 'italic', color: 'var(--gold-light)' }}>fingerprint</em>
+            </h1>
+            <p style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
+              Scenario: {fp.scenario_id} · Session: {fp.session_id.slice(0, 8)}…
+            </p>
+            <div style={{ marginTop: 16 }}>
+              <StyleClusterBadge cluster={fp.style_cluster ?? null} />
+            </div>
+          </div>
+
+          {/* Export button — hidden when printing */}
+          <button
+            data-no-print
+            onClick={() => window.print()}
             style={{
-              fontFamily: "'Fraunces', Georgia, serif",
-              fontSize: 32,
-              fontWeight: 400,
+              flexShrink: 0,
+              alignSelf: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 20px',
+              background: 'transparent',
+              border: '1.5px solid rgba(255,255,255,0.4)',
+              borderRadius: 8,
               color: '#fff',
-              lineHeight: 1.2,
-              marginBottom: 8,
+              fontFamily: 'var(--fb)',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'border-color 0.15s, background 0.15s',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--gold)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(200,152,42,0.12)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.4)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
             }}
           >
-            Orchestration{' '}
-            <em style={{ fontStyle: 'italic', color: 'var(--gold-light)' }}>fingerprint</em>
-          </h1>
-          <p style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
-            Scenario: {fp.scenario_id} · Session: {fp.session_id.slice(0, 8)}…
-          </p>
-          <div style={{ marginTop: 16 }}>
-            <StyleClusterBadge cluster={fp.style_cluster ?? null} />
-          </div>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M7 1v8M4 6l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 10v1.5A1.5 1.5 0 003.5 13h7A1.5 1.5 0 0012 11.5V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            Export PDF
+          </button>
         </div>
       </section>
 
